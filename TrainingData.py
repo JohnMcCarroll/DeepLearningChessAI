@@ -1,4 +1,5 @@
 import os
+import re
 
 """
     TrainingData
@@ -10,6 +11,34 @@ import os
 class TrainingData:
     def __init__(self, dataLocation):
         # Populate list of filenames in PGN directory, can skip step later (straight to reading files)
-        self.dataFiles = list()
         for filename in os.listdir(dataLocation):
-            self.dataFiles.append(filename)
+            file = open(dataLocation + "\\" + filename, 'r', 1)
+            result = ""
+            for line in file:
+                fields = line.split(" ")
+                if fields[0] == "1.":
+                    # filter games decided by time or disconnection
+                    if re.match(fields[len(fields) - 4], "forfeits"):
+                        print("invalid game")
+                    else:
+                        # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
+                        result = fields[len(fields) - 1].split("-")[0]
+                        print(result)
+
+                        # parse game moves and pair with result
+                        "get tensor package imported and set up initial rep of board state to begin translation of PGN"
+
+
+
+
+
+
+
+
+
+
+
+
+
+# testing
+TD = TrainingData("D:\\Machine Learning\\Chess Database\\2000+ Games")

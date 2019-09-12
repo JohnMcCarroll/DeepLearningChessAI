@@ -2,6 +2,7 @@ import os
 import re
 import torch
 import numpy as np
+import time
 
 """
     TrainingData
@@ -11,344 +12,471 @@ import numpy as np
 """
 
 class TrainingData:
-    def __init__(self, dataLocation):
+    def __init__(self, filePath):
+        # open training data file
         self.dataset = dict()
-        # Populate list of filenames in PGN directory, can skip step later (straight to reading files)
-        for filename in os.listdir(dataLocation):
-            file = open(dataLocation + "\\" + filename, 'r', 1)
-            result = ""
-            for line in file:
+        file = open(filePath, 'r', 1, encoding='utf-8')
+        result = ""
+        meetsCriteria = False
+
+        # parse through file, collecting positions / result from games that meet criteria (no time wins...)
+        for line in file:
+            fields = line.split(" ")
+            if fields[0] == "[Termination" and not re.search("time", line) and not re.search("abandoned", line):
+                meetsCriteria = True
+
+            if fields[0] == "1." and meetsCriteria:
+                # reset criteria filter
+                meetsCriteria = False
+                
+                # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
+                line = re.split(r'\d\[', line)[0]       # cleaning up line
                 fields = line.split(" ")
-                if fields[0] == "1.":
-                    # filter games decided by time or disconnection
-                    if re.match(fields[len(fields) - 4], "forfeits"):
-                        print("invalid game")
-                        
+                result = fields[-1].split("-")[0]
+
+                # parse game moves and pair with result
+                # initialize board state tensor
+                board = torch.zeros([14, 8, 8])
+                # White King
+                board[0][7][4] = 1
+                # White Queen
+                board[1][7][3] = 1
+                # White Rooks
+                board[2][7][0] = 1
+                board[2][7][7] = 1
+                # White Bishops
+                board[3][7][2] = 1
+                board[3][7][5] = 1
+                # White Knights
+                board[4][7][1] = 1
+                board[4][7][6] = 1
+                # White Pawns
+                board[5][6][:] = 1
+                # Black King
+                board[6][0][4] = 1
+                # Black Queen
+                board[7][0][3] = 1
+                # Black Rooks
+                board[8][0][0] = 1
+                board[8][0][7] = 1
+                # Black Bishops
+                board[9][0][2] = 1
+                board[9][0][5] = 1
+                # Black Knights
+                board[10][0][1] = 1
+                board[10][0][6] = 1
+                # Black Pawns
+                board[11][1][:] = 1
+
+                self.dataset[board] = result        #store first board state
+
+                # piece type hashtable                                          
+                channels = dict()
+                channels['WK'] = 0
+                channels['WQ'] = 1
+                channels['WR'] = 2
+                channels['WB'] = 3
+                channels['WN'] = 4
+                channels['WP'] = 5
+                channels['BK'] = 6
+                channels['BQ'] = 7
+                channels['BR'] = 8
+                channels['BB'] = 9
+                channels['BN'] = 10
+                channels['BP'] = 11
+
+                # initalize move variables
+                moveRow = 0
+                moveCol = 0
+                pieceType = 0
+                pieceLoc = 0
+                prevField = '1.'
+                promotion = False
+
+                for field in fields:
+                    # TESTING: print initial board state:
+                    print('Before Move:')
+                    print(board)
+
+                    # remove checks
+                    field = field.strip('+#') 
+
+                    # color determination
+                    if prevField[-3:-1] == '..':    #BUG not registering, might be because move cannot be processed - prevField not reassigned***
+                        color = "B"
+                        board[12:14][:][:] = 0          #opposite piece we are moving because this indicates whose turn it WILL be
                     else:
-                        # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
-                        result = fields[len(fields) - 1].split("-")[0]
+                        color = "W"
+                        board[12:14][:][:] = 1
 
-                        # parse game moves and pair with result
-                        # initialize board state tensor
-                        board = torch.zeros([2, 8, 8])
-                        board[0][0][0] = -5
-                        board[0][0][7] = -5
-                        board[0][0][1] = -3
-                        board[0][0][6] = -3
-                        board[0][0][2] = -4
-                        board[0][0][5] = -4
-                        board[0][0][3] = -9
-                        board[0][0][4] = -10
-                        board[0][1][:] = -1
-                        board[0][7][0] = 5
-                        board[0][7][7] = 5
-                        board[0][7][1] = 3
-                        board[0][7][6] = 3
-                        board[0][7][2] = 4
-                        board[0][7][5] = 4
-                        board[0][7][3] = 9
-                        board[0][7][4] = 10
-                        board[0][6][:] = 1
-                        board[1][:][:] = 1
+                    prevField = field
 
-                        self.dataset[board] = result        #store first board state
+                    # move and piece type parsing
+                    if field[-1] == '.':
+                        continue
+                    elif field[0] == '{':
+                        continue
+                    elif len(field) == 2:
+                        moveCol = ord(field[0]) - 96
+                        moveRow = int(field[1])
+                        pieceType = color + "P"
 
-                        # piece type hashtable
-                        types = dict()
-                        types['K'] = 10
-                        types['Q'] = 9
-                        types['R'] = 5
-                        types['B'] = 4
-                        types['N'] = 3
+                    elif len(field) == 3:
+                        if field[0] == 'O':
+                            pieceType = 'King Side Castle'
+                        else:
+                            pieceType = color +    channels[field[0]]
+                            moveCol = ord(field[1]) - 96
+                            moveRow = int(field[2])
 
-                        # initalize move variables
-                        moveRow = 0
-                        moveCol = 0
-                        pieceType = 0
-                        pieceLoc = 0
-                        prevField = '1.'
-                        promotion = False
-
-                        for field in fields:
-                            # TESTING: print initial board state:
-                            print('Before Move:')
-                            print(board)
-
-                            # remove checks
-                            field = field.strip('+#') 
-
-                            # color determination
-                            if prevField[-1] == '.':
-                                color = 1
+                    elif len(field) == 4:
+                        if field[1] == 'x':
+                            if ord(field[0]) > 96:
+                                pieceType = color + "P"
+                                pieceLoc = ord(field[0]) - 96
                             else:
-                                color = -1
-                            board[1][:][:] = color*(-1)     #opposite piece we are moving because this indicates whose turn it WILL be
-
-                            # move and piece type parsing
-                            if field[-1] == '.':
-                                pass
-                            elif field[0] == '{':
-                                break
-                            elif len(field) == 2:
-                                moveCol = ord(field[0]) - 96
-                                moveRow = int(field[1])
-                                pieceType = color
-
-                            elif len(field) == 3:
-                                if field[0] == 'O':
-                                    pieceType = 'King Side Castle'
-                                else:
-                                    pieceType = types[field[0]] * color
-                                    moveCol = ord(field[1]) - 96
-                                    moveRow = int(field[2])
-
-                            elif len(field) == 4:
-                                if field[1] == 'x':
-                                    if ord(field[0]) > 96:
-                                        pieceType = color
-                                        pieceLoc = ord(field[0]) - 96
-                                    else:
-                                        pieceType = types[field[0]] * color
-                                    moveCol = ord(field[2]) - 96
-                                    moveRow = int(field[3])
-                                elif field[2] == '=':
-                                    promotion = True
-                                    pieceType = types[field[3]] * color
-                                    moveCol = ord(field[0]) - 96
-                                    moveRow = int(field[1])
-                                else:
-                                    pieceType = types[field[0]] * color
-                                    if ord(field[1]) < 58: 
-                                        pieceLoc = -int(field[1])
-                                    else:
-                                        pieceLoc = ord(field[1]) - 96
-                                    moveCol = ord(field[2]) - 96
-                                    moveRow = int(field[3])
-
-                            elif len(field) == 5:
-                                if field[0] == 'O':
-                                    pieceType = 'Queen Side Castle'
-                                elif field[2] == 'x':
-                                    pieceType = types[field[0]] * color
-                                    if ord(field[1]) < 58: 
-                                            pieceLoc = -int(field[1])
-                                        else:
-                                            pieceLoc = ord(field[1]) - 96
-                                    moveCol = ord(field[3]) - 96
-                                    moveRow = int(field[4])
-
-                            elif len(field) == 6:
-                                promotion = True
-                                pieceType = types[field[5]] * color
-                                if ord(field[0]) < 58: 
-                                            pieceLoc = -int(field[0])
-                                        else:
-                                            pieceLoc = ord(field[0]) - 96
-                                moveCol = ord(field[2]) - 96
-                                moveRow = int(field[3])
+                                pieceType = color +    channels[field[0]]
+                            moveCol = ord(field[2]) - 96
+                            moveRow = int(field[3])
+                        elif field[2] == '=':
+                            promotion = True
+                            pieceType = color +    channels[field[3]]
+                            moveCol = ord(field[0]) - 96
+                            moveRow = int(field[1])
+                        else:
+                            pieceType = color +    channels[field[0]]
+                            if ord(field[1]) < 58: 
+                                pieceLoc = -int(field[1])
                             else:
-                                print(field)
+                                pieceLoc = ord(field[1]) - 96
+                            moveCol = ord(field[2]) - 96
+                            moveRow = int(field[3])
 
-                            prevField = field
+                    elif len(field) == 5:
+                        if field[0] == 'O':
+                            pieceType = 'Queen Side Castle'
+                        elif field[2] == 'x':
+                            pieceType = color +    channels[field[0]]
+                            if ord(field[1]) < 58: 
+                                pieceLoc = -int(field[1])
+                            else:
+                                pieceLoc = ord(field[1]) - 96
+                            moveCol = ord(field[3]) - 96
+                            moveRow = int(field[4])
 
-                            # Alter board state - move piece
+                    elif len(field) == 6:
+                        promotion = True
+                        pieceType = color +    channels[field[5]]
+                        if ord(field[0]) < 58: 
+                            pieceLoc = -int(field[0])
+                        else:
+                            pieceLoc = ord(field[0]) - 96
+                        moveCol = ord(field[2]) - 96
+                        moveRow = int(field[3])
+                    else:
+                        print(field)
 
-                            # CASTLE
-                            if isinstance(pieceType, str):
-                                if color == 1:
-                                    moveRow = 8
-                                else:
-                                    moveRow = 1
 
-                                if pieceType == "King Side Castle":
-                                    board[0][moveRow][4] = 0
-                                    board[0][moveRow][7] = 0
-                                    board[0][moveRow][6] = 10*color
-                                    board[0][moveRow][5] = 5*color
-                                else:
-                                    board[0][moveRow][4] = 0
-                                    board[0][moveRow][0] = 0
-                                    board[0][moveRow][2] = 10*color
-                                    board[0][moveRow][3] = 5*color
+                    # Alter board state - move piece
 
-                            # PROMOTION
+                    # CASTLE
+                    if len(pieceType) > 2 :
+                        if color == "W":
+                            moveRow = 7
+                            kingChannel = 0
+                            rookChannel = 2
+                        else:
+                            moveRow = 0
+                            kingChannel = 6
+                            rookChannel = 8
+
+                        if pieceType == "King Side Castle":
+                            board[kingChannel][moveRow][4] = 0
+                            board[rookChannel][moveRow][7] = 0
+                            board[kingChannel][moveRow][6] = 1
+                            board[rookChannel][moveRow][5] = 1
+                        else:
+                            board[kingChannel][moveRow][4] = 0
+                            board[rookChannel][moveRow][0] = 0
+                            board[kingChannel][moveRow][2] = 1
+                            board[rookChannel][moveRow][3] = 1
+
+                    # PROMOTION
+                    
+
+                    # KING movement
+                    elif pieceType[1] == "K":
+                        # clear Channel
+                        board[channels[pieceType]][:][:] = 0
+                        # remove captured piece
+                        board[:][moveRow][moveCol] = 0
+                        # place king
+                        board[channels[pieceType]][moveRow][moveCol] = 1
+                        
+                    # KNIGHT movement
+                    elif pieceType[1] == "N":
+                        # remove captured piece
+                        board[:][moveRow][moveCol] = 0
+
+                        # if specific piece noted, search that row / col
+                        if pieceLoc < 0:
+                            # clear specified row
+                            board[channels[pieceType]][-pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
                             
+                        elif pieceLoc > 0:
+                            # clear specified column
+                            board[channels[pieceType]][:][pieceLoc] = 0
+                            
+                        else:                                                                  # this could be optimized, sets everything to zero***
+                            for x in [-2,2]:
+                                for y in [-1,1]:
+                                    if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
+                                        board[channels[pieceType]][moveRow + x][moveCol + y] = 0
+                            for y in [-2,2]:
+                                for x in [-1,1]:
+                                    if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
+                                        board[channels[pieceType]][moveRow + x][moveCol + y] = 0
 
-                            # KING movement
-                            elif abs(pieceType) == 10:                        
-                                #search for king to be moved and remove piece from square
-                                for x in range(-1,2):
-                                    for y in range(-1,2):
-                                        if board[0][moveRow + x][moveCol + y] == pieceType:
-                                            board[0][moveRow + x][moveCol + y] = 0
-                                            break
-                                #place piece in new square
-                                board[0][moveRow][moveCol] = pieceType
+                        board[channels[pieceType]][moveRow][moveCol] = 1                    
 
-                            # KNIGHT movement
-                            elif abs(pieceType) == 3:
-                                # if specific piece noted, search that row / col
-                                if pieceLoc < 0:
-                                    pieceLoc = -pieceLoc
-                                    x = 0
-                                    while board[0][pieceLoc][x] != 3:
-                                        x += 1
-                                    # remove piece from square & place in new square
-                                    board[0][pieceLoc][x] = 0
-                                    board[0][moveRow][moveCol] = pieceType
-                                elif pieceLoc > 0:
-                                    x = 0
-                                    while board[0][x][pieceLoc] != 3:
-                                        x += 1
-                                    # remove piece from square & place in new square
-                                    board[0][x][pieceLoc] = 0
-                                    board[0][moveRow][moveCol] = pieceType
-                                else:                                                                  # this could be optimized, searches everything even if knight found...*
-                                    for x in [-2,2]:
-                                        for y in [-1,1]:
-                                            if board[0][moveRow + x][moveCol + y] == pieceType:
-                                                board[0][moveRow + x][moveCol + y] = 0
-                                                break
-                                    for y in [-2,2]:
-                                        for x in [-1,1]:
-                                            if board[0][moveRow + x][moveCol + y] == pieceType:
-                                                board[0][moveRow + x][moveCol + y] = 0
-                                                break
-                                    board[0][moveRow][moveCol] = pieceType
+                    # BISHOP Movement
+                    elif pieceType[1] == "B":
+                        # remove captured piece
+                        board[:][moveRow][moveCol] = 0
 
-                            # BISHOP Movement
-                            elif abs(pieceType) == 4:
-                                startRow = moveRow
-                                startCol = moveCol
-                                notFound = True
-                                # set up first diagonal search from upper left most square
-                                while startRow > 0 and startCol > 0:
-                                    startRow -= 1
-                                    startCol -= 1
-                                while startRow <= 8 and startCol <= 8:
-                                    if board[0][startRow][startCol] == pieceType
-                                        board[0][startRow][startCol] = 0
-                                        notFound = False
-                                        break
-                                    startRow += 1
-                                    startCol += 1
-                                # set up second diagonal search from lower left most square
-                                startRow = moveRow
-                                startCol = moveCol
-                                while startRow <= 8 and startCol > 0 and notFound:
-                                    startRow += 1
-                                    startCol -= 1
-                                while startRow >= 0 and startCol <= 8 and notFound:
-                                    if board[0][startRow][startCol] == pieceType
-                                        board[0][startRow][startCol] = 0
-                                        break
-                                    startRow -= 1
-                                    startCol += 1
-                            board[0][moveRow][moveCol] = pieceType
+                        startRow = moveRow
+                        startCol = moveCol
+                        notFound = True
+                        # set up first diagonal search from upper left most square
+                        while startRow > 0 and startCol > 0:                                    #optimize later***
+                            startRow -= 1
+                            startCol -= 1
+                        while startRow < 8 and startCol < 8 and notFound:
+                            if board[channels[pieceType]][startRow][startCol] == 1:
+                                notFound = False
 
-                            # ROOK Movement
-                            elif abs(pieceType) == 5:
-                                # if specific piece noted, search that row / col
-                                if pieceLoc < 0:
-                                    pieceLoc = -pieceLoc
-                                    x = 0
-                                    while board[0][pieceLoc][x] != 3:
-                                        x += 1
-                                    # remove piece from square & place in new square
-                                    board[0][pieceLoc][x] = 0
-                                elif pieceLoc > 0:
-                                    x = 0
-                                    while board[0][x][pieceLoc] != 3:
-                                        x += 1
-                                    # remove piece from square & place in new square
-                                    board[0][x][pieceLoc] = 0
-                                else:
-                                    notFound = True
-                                    # search row first for rook
-                                    x = 0
-                                    while x <= 8:
-                                        if board[0][x][moveCol] == pieceType
-                                            board[0][x][moveCol] = 0
-                                            notFound = False
-                                            break
-                                        x += 1
-                                    # search column next
-                                    y = 0
-                                    while y <= 8 and notFound:
-                                        if board[0][moveRow][y] == pieceType
-                                            board[0][moveRow][y] = 0
-                                            break
-                                        y += 1
-                                board[0][moveRow][moveCol] = pieceType
-
-                            # QUEEN Movement                                                # BUG! scanning board does not take into account obstructing pieces - add condition to check if board not obstructed while searching***
-                            elif abs(pieceType) == 9:
-                                notFound = True
-                                startRow = moveRow
-                                startCol = moveCol
-                                # set up first diagonal search from upper left most square
-                                while startRow > 0 and startCol > 0:
-                                    startRow -= 1
-                                    startCol -= 1
-                                while startRow <= 8 and startCol <= 8:
-                                    if board[0][startRow][startCol] == pieceType
-                                        board[0][startRow][startCol] = 0
-                                        notFound = False
-                                        break
-                                    startRow += 1
-                                    startCol += 1
-                                # set up second diagonal search from lower left most square
-                                startRow = moveRow
-                                startCol = moveCol
-                                while startRow <= 8 and startCol > 0 and notFound:
-                                    startRow += 1
-                                    startCol -= 1
-                                while startRow >= 0 and startCol <= 8 and notFound:
-                                    if board[0][startRow][startCol] == pieceType
-                                        board[0][startRow][startCol] = 0
-                                        notFound = False
-                                        break
-                                    startRow -= 1
-                                    startCol += 1
-                                # search row first for queen
-                                x = 0
-                                while x <= 8 and notFound:
-                                    if board[0][x][moveCol] == pieceType
-                                        board[0][x][moveCol] = 0
-                                        notFound = False
-                                        break
-                                    x += 1
-                                # search column next
-                                y = 0
-                                while y <= 8 and notFound:
-                                    if board[0][moveRow][y] == pieceType
-                                        board[0][moveRow][y] = 0
-                                        notFound = False
-                                        break
-                                    y += 1
-                            board[0][moveRow][moveCol] = pieceType
-
-                            # PAWN Movement
-                            elif abs(pieceType) == 1:
-                                if pieceLoc == 0:
-                                    if board[0][moveRow + color][moveCol] == pieceType:
-                                        board[0][moveRow + color][moveCol] = 0
-                                    elif board[0][moveRow + color*2][moveCol] == pieceType:
-                                        board[0][moveRow + color*2][moveCol] = 0
-                                else:
-                                    board[0][moveRow + color][pieceLoc] = 0
-                                board[0][moveRow][moveCol] = pieceType
+                            board[channels[pieceType]][startRow][startCol] = 0
+                            
+                            startRow += 1
+                            startCol += 1
+                        # set up second diagonal search from lower left most square
+                        startRow = moveRow
+                        startCol = moveCol
+                        while startRow <= 8 and startCol > 0 and notFound:
+                            startRow += 1
+                            startCol -= 1
+                        while startRow >= 0 and startCol <= 8 and notFound:
+                            if board[channels[pieceType]][startRow][startCol] == 1:
+                                notFound = False
                                 
+                            board[channels[pieceType]][startRow][startCol] = 0
 
+                            startRow -= 1
+                            startCol += 1
 
+                        board[channels[pieceType]][moveRow][moveCol] = 1
+
+                    # ROOK Movement
+                    elif pieceType[1] == "R":
+                        # remove captured piece
+                        board[:][moveRow][moveCol] = 0
+
+                        # if specific piece noted, search that row / col
+                        if pieceLoc < 0:
+                            # clear specified row
+                            board[channels[pieceType]][-pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
+                            
+                        elif pieceLoc > 0:
+                            # clear specified column
+                            board[channels[pieceType]][:][pieceLoc] = 0
+
+                        else:
+                            notFound = True
+                            # search upper col
+                            y = moveRow
+                            while y > 0:
+                                y -= 1
+                                if torch.max(board[:][y][moveCol]) > 0:
+                                    if board[channels[pieceType]][y][moveCol] == 1:
+                                        board[channels[pieceType]][y][moveCol] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
                                 
+                            # search lower col
+                            y = moveRow
+                            while y < 7 and notFound:
+                                y += 1
+                                if torch.max(board[:][y][moveCol]) > 0:
+                                    if board[channels[pieceType]][y][moveCol] == 1:
+                                        board[channels[pieceType]][y][moveCol] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+
+                            # search left row
+                            x = moveCol
+                            while x > 0 and notFound:
+                                x -= 1
+                                if torch.max(board[:][moveRow][x]) > 0:
+                                    if board[channels[pieceType]][moveRow][x] == 1:
+                                        board[channels[pieceType]][moveRow][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+
+                            # search right row
+                            x = moveCol
+                            while x < 7 and notFound:
+                                x += 1
+                                if torch.max(board[:][moveRow][x]) > 0:
+                                    if board[channels[pieceType]][moveRow][x] == 1:
+                                        board[channels[pieceType]][moveRow][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+
+                        board[channels[pieceType]][moveRow][moveCol] = 1
+
+                    # QUEEN Movement                                                # BUG! scanning board does not take into account obstructing pieces - add condition to check if board not obstructed while searching***
+                    elif pieceType[1] == "Q":
+                        # remove captured piece
+                        board[:][moveRow][moveCol] = 0
+
+                        # if specific piece noted, clear that row / col
+                        if pieceLoc < 0:
+                            # clear specified row
+                            board[channels[pieceType]][-pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
+                            
+                        elif pieceLoc > 0:
+                            # clear specified column
+                            board[channels[pieceType]][:][pieceLoc] = 0
+
+                        else:
+                            notFound = True
+                            startRow = moveRow
+                            startCol = moveCol
+
+                            # search upper col
+                            y = moveRow
+                            while y > 0:
+                                y -= 1
+                                if torch.max(board[:][y][moveCol]) > 0:
+                                    if board[channels[pieceType]][y][moveCol] == 1:
+                                        board[channels[pieceType]][y][moveCol] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+                            # search lower col
+                            y = moveRow
+                            while y < 7 and notFound:
+                                y += 1
+                                if torch.max(board[:][y][moveCol]) > 0:
+                                    if board[channels[pieceType]][y][moveCol] == 1:
+                                        board[channels[pieceType]][y][moveCol] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+                            # search left row
+                            x = moveCol
+                            while x > 0 and notFound:
+                                x -= 1
+                                if torch.max(board[:][moveRow][x]) > 0:
+                                    if board[channels[pieceType]][moveRow][x] == 1:
+                                        board[channels[pieceType]][moveRow][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+                            # search right row
+                            x = moveCol
+                            while x < 7 and notFound:
+                                x += 1
+                                if torch.max(board[:][moveRow][x]) > 0:
+                                    if board[channels[pieceType]][moveRow][x] == 1:
+                                        board[channels[pieceType]][moveRow][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+                            # search upper left diagonal
+                            y = moveRow
+                            x = moveCol
+                            while y > 0 and x > 0 and notFound:
+                                y -= 1
+                                x -= 1
+                                if torch.max(board[:][y][x]) > 0:
+                                    if board[channels[pieceType]][y][x] == 1:
+                                        board[channels[pieceType]][y][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+                            # search upper right diagonal
+                            y = moveRow
+                            x = moveCol
+                            while y > 0 and x < 7 and notFound:
+                                y -= 1
+                                x += 1
+                                if torch.max(board[:][y][x]) > 0:
+                                    if board[channels[pieceType]][y][x] == 1:
+                                        board[channels[pieceType]][y][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+                            # search lower left diagonal
+                            y = moveRow
+                            x = moveCol
+                            while y < 7 and x > 0 and notFound:
+                                y += 1
+                                x -= 1
+                                if torch.max(board[:][y][x]) > 0:
+                                    if board[channels[pieceType]][y][x] == 1:
+                                        board[channels[pieceType]][y][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+                            # search lower right diagonal
+                            y = moveRow
+                            x = moveCol
+                            while y < 7 and x < 7 and notFound:
+                                y += 1
+                                x += 1
+                                if torch.max(board[:][y][x]) > 0:
+                                    if board[channels[pieceType]][y][x] == 1:
+                                        board[channels[pieceType]][y][x] = 0
+                                        notFound = False
+                                        break
+                                    else:
+                                        break
+
+                    board[channels[pieceType]][moveRow][moveCol] = 1
+
+                    # PAWN Movement
+                    elif pieceType[1] == "P":                                       #HERE***
+                        if pieceLoc == 0:
+                            if board[0][moveRow + color][moveCol] == pieceType:
+                                board[0][moveRow + color][moveCol] = 0
+                            elif board[0][moveRow + color*2][moveCol] == pieceType:
+                                board[0][moveRow + color*2][moveCol] = 0
+                        else:
+                            board[0][moveRow + color][pieceLoc] = 0
+                        board[0][moveRow][moveCol] = pieceType
+                        
 
 
 
-
-                            # TESTING: print resulting board state:
-                            print('After Move:')
-                            print(board)
+                    # TESTING: print resulting board state:
+                    print('After Move:')
+                    print(board)
 
                                 
                         
@@ -356,4 +484,4 @@ class TrainingData:
 
 
 # testing
-TD = TrainingData("D:\\Machine Learning\\Chess Database\\2000+ Games")
+TD = TrainingData("D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn")

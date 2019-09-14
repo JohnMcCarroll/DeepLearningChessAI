@@ -85,97 +85,103 @@ class TrainingData:
                 channels['BN'] = 10
                 channels['BP'] = 11
 
-                # initalize move variables
-                moveRow = 0
-                moveCol = 0
-                pieceType = 0
-                pieceLoc = 0
-                prevField = '1.'
-                promotion = False
-
                 for field in fields:
-                    # TESTING: print initial board state:
-                    print('Before Move:')
-                    print(board)
+                    # filter fields
+                    
+                    if field[-1] == '.' or field[-1] == '}' or field[0] == '{':
+                        prevField = field
+                        continue
+
+                    # initalize move variables
+                    moveRow = -1
+                    moveCol = -1
+                    pieceType = ''
+                    pieceLoc = -1
+                    location = ''
+                    promotion = ''
 
                     # remove checks
-                    field = field.strip('+#') 
+                    field = field.strip('+#')
 
                     # color determination
-                    if prevField[-3:-1] == '..':    #BUG not registering, might be because move cannot be processed - prevField not reassigned***
+                    if prevField[-3:-1] == '..':
                         color = "B"
-                        board[12:14][:][:] = 0          #opposite piece we are moving because this indicates whose turn it WILL be
-                    else:
+                        board[12:14][:][:] = 0          #opposite piece we are moving because this indicates whose turn it WILL be (0 = white's move, 1 = black's move)
+                    elif prevField[-1] == '.':
                         color = "W"
                         board[12:14][:][:] = 1
+                
 
+                    # store prevField
                     prevField = field
 
-                    # move and piece type parsing
-                    if field[-1] == '.':
-                        continue
-                    elif field[0] == '{':
-                        continue
-                    elif len(field) == 2:
-                        moveCol = ord(field[0]) - 96
-                        moveRow = int(field[1])
+                    # parse move
+                    if len(field) == 2:
+                        moveCol = ord(field[0]) - 97
+                        moveRow = 8 - int(field[1])
                         pieceType = color + "P"
 
                     elif len(field) == 3:
                         if field[0] == 'O':
                             pieceType = 'King Side Castle'
                         else:
-                            pieceType = color +    channels[field[0]]
-                            moveCol = ord(field[1]) - 96
-                            moveRow = int(field[2])
+                            pieceType = color + field[0]
+                            moveCol = ord(field[1]) - 97
+                            moveRow = 8 - int(field[2])
 
                     elif len(field) == 4:
                         if field[1] == 'x':
                             if ord(field[0]) > 96:
                                 pieceType = color + "P"
-                                pieceLoc = ord(field[0]) - 96
+                                pieceLoc = ord(field[0]) - 97
+                                location = 'col'
                             else:
-                                pieceType = color +    channels[field[0]]
-                            moveCol = ord(field[2]) - 96
-                            moveRow = int(field[3])
+                                pieceType = color + field[0]
+                            moveCol = ord(field[2]) - 97
+                            moveRow = 8 - int(field[3])
                         elif field[2] == '=':
-                            promotion = True
-                            pieceType = color +    channels[field[3]]
-                            moveCol = ord(field[0]) - 96
-                            moveRow = int(field[1])
+                            promotion = color + field[3]
+                            pieceType = color + "P"
+                            moveCol = ord(field[0]) - 97
+                            moveRow = 8 - int(field[1])
                         else:
-                            pieceType = color +    channels[field[0]]
+                            pieceType = color + field[0]
                             if ord(field[1]) < 58: 
-                                pieceLoc = -int(field[1])
+                                pieceLoc = 8 - int(field[1])
+                                location = 'row'
                             else:
-                                pieceLoc = ord(field[1]) - 96
-                            moveCol = ord(field[2]) - 96
-                            moveRow = int(field[3])
+                                pieceLoc = ord(field[1]) - 97
+                                location = 'col'
+                            moveCol = ord(field[2]) - 97
+                            moveRow = 8 - int(field[3])
 
                     elif len(field) == 5:
                         if field[0] == 'O':
                             pieceType = 'Queen Side Castle'
                         elif field[2] == 'x':
-                            pieceType = color +    channels[field[0]]
+                            pieceType = color + field[0]
                             if ord(field[1]) < 58: 
-                                pieceLoc = -int(field[1])
+                                pieceLoc = 8 - int(field[1])
+                                location = 'row'
                             else:
-                                pieceLoc = ord(field[1]) - 96
-                            moveCol = ord(field[3]) - 96
-                            moveRow = int(field[4])
+                                pieceLoc = ord(field[1]) - 97
+                                location = 'col'
+                            moveCol = ord(field[3]) - 97
+                            moveRow = 8 - int(field[4])
 
                     elif len(field) == 6:
-                        promotion = True
-                        pieceType = color +    channels[field[5]]
+                        promotion = color + field[5]
+                        pieceType = color + "P"
                         if ord(field[0]) < 58: 
-                            pieceLoc = -int(field[0])
+                            pieceLoc = 8 - int(field[0])
+                            location = 'row'
                         else:
-                            pieceLoc = ord(field[0]) - 96
-                        moveCol = ord(field[2]) - 96
-                        moveRow = int(field[3])
+                            pieceLoc = ord(field[0]) - 97
+                            location = 'col'
+                        moveCol = ord(field[2]) - 97
+                        moveRow = 8 - int(field[3])
                     else:
                         print(field)
-
 
                     # Alter board state - move piece
 
@@ -201,9 +207,6 @@ class TrainingData:
                             board[kingChannel][moveRow][2] = 1
                             board[rookChannel][moveRow][3] = 1
 
-                    # PROMOTION
-                    
-
                     # KING movement
                     elif pieceType[1] == "K":
                         # clear Channel
@@ -219,11 +222,11 @@ class TrainingData:
                         board[:][moveRow][moveCol] = 0
 
                         # if specific piece noted, search that row / col
-                        if pieceLoc < 0:
+                        if location == 'row':
                             # clear specified row
-                            board[channels[pieceType]][-pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
+                            board[channels[pieceType]][pieceLoc][:] = 0
                             
-                        elif pieceLoc > 0:
+                        elif location == 'col':
                             # clear specified column
                             board[channels[pieceType]][:][pieceLoc] = 0
                             
@@ -262,10 +265,10 @@ class TrainingData:
                         # set up second diagonal search from lower left most square
                         startRow = moveRow
                         startCol = moveCol
-                        while startRow <= 8 and startCol > 0 and notFound:
+                        while startRow < 8 and startCol > 0 and notFound:
                             startRow += 1
                             startCol -= 1
-                        while startRow >= 0 and startCol <= 8 and notFound:
+                        while startRow >= 0 and startCol < 8 and notFound:
                             if board[channels[pieceType]][startRow][startCol] == 1:
                                 notFound = False
                                 
@@ -282,11 +285,11 @@ class TrainingData:
                         board[:][moveRow][moveCol] = 0
 
                         # if specific piece noted, search that row / col
-                        if pieceLoc < 0:
+                        if location == 'row':
                             # clear specified row
-                            board[channels[pieceType]][-pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
+                            board[channels[pieceType]][pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
                             
-                        elif pieceLoc > 0:
+                        elif location == 'col':
                             # clear specified column
                             board[channels[pieceType]][:][pieceLoc] = 0
 
@@ -342,17 +345,17 @@ class TrainingData:
 
                         board[channels[pieceType]][moveRow][moveCol] = 1
 
-                    # QUEEN Movement                                                # BUG! scanning board does not take into account obstructing pieces - add condition to check if board not obstructed while searching***
+                    # QUEEN Movement  
                     elif pieceType[1] == "Q":
                         # remove captured piece
                         board[:][moveRow][moveCol] = 0
 
                         # if specific piece noted, clear that row / col
-                        if pieceLoc < 0:
+                        if location == 'row':
                             # clear specified row
-                            board[channels[pieceType]][-pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
+                            board[channels[pieceType]][pieceLoc][:] = 0        # negative pieceLoc signifies that it's a row
                             
-                        elif pieceLoc > 0:
+                        elif location == 'col':
                             # clear specified column
                             board[channels[pieceType]][:][pieceLoc] = 0
 
@@ -458,24 +461,35 @@ class TrainingData:
                                     else:
                                         break
 
-                    board[channels[pieceType]][moveRow][moveCol] = 1
+                        board[channels[pieceType]][moveRow][moveCol] = 1
 
-                    # PAWN Movement
-                    elif pieceType[1] == "P":                                       #HERE***
-                        if pieceLoc == 0:
-                            if board[0][moveRow + color][moveCol] == pieceType:
-                                board[0][moveRow + color][moveCol] = 0
-                            elif board[0][moveRow + color*2][moveCol] == pieceType:
-                                board[0][moveRow + color*2][moveCol] = 0
+                    # PAWN Movement & Promotion
+                    elif pieceType[1] == "P":
+                        # clear captured piece
+                        board[:][moveRow][moveCol] = 0      #doesnt work?***
+
+                        if color == "W":
+                            direction = 1
                         else:
-                            board[0][moveRow + color][pieceLoc] = 0
-                        board[0][moveRow][moveCol] = pieceType
+                            direction = -1
+
+                        if not location:
+                            if board[channels[pieceType]][moveRow + direction][moveCol] == 1:
+                                board[channels[pieceType]][moveRow + direction][moveCol] = 0
+                            elif board[channels[pieceType]][moveRow + direction*2][moveCol] == 1:
+                                board[channels[pieceType]][moveRow + direction*2][moveCol] = 0
+
+                        else:
+                            board[0][moveRow + direction][pieceLoc] = 0
+
+                        if not promotion:
+                            board[channels[pieceType]][moveRow][moveCol] = 1
+                        else:
+                            board[channels[promotion]][moveRow][moveCol] = 1
                         
 
 
-
                     # TESTING: print resulting board state:
-                    print('After Move:')
                     print(board)
 
                                 

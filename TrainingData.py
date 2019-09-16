@@ -57,20 +57,9 @@ class TrainingData:
 
                 for field in fields:
                     # filter fields
-                    if field[-1] == '.' or field[-1] == '}' or field[0] == '{' or field[1] == '-':
+                    if field[-1] == '.' or field[-1] == '}' or field[0] == '{' or re.match(r'\d\-\d', field):
                         prevField = field
                         continue
-
-                    # initalize move variables
-                    moveRow = -1
-                    moveCol = -1
-                    pieceType = ''
-                    pieceLoc = -1
-                    location = ''
-                    promotion = ''
-
-                    # remove checks
-                    field = field.strip('+#')
 
                     # color determination
                     if prevField[-3:-1] == '..':
@@ -85,375 +74,37 @@ class TrainingData:
                     prevField = field
 
                     # parse move
-                    if len(field) == 2:
-                        moveCol = ord(field[0]) - 97
-                        moveRow = 8 - int(field[1])
-                        pieceType = color + "P"
+                    moveRow, moveCol, pieceType, pieceLoc, location, promotion = self.parseMove(field, color)
 
-                    elif len(field) == 3:
-                        if field[0] == 'O':
-                            pieceType = 'King Side Castle'
-                        else:
-                            pieceType = color + field[0]
-                            moveCol = ord(field[1]) - 97
-                            moveRow = 8 - int(field[2])
-
-                    elif len(field) == 4:
-                        if field[1] == 'x':
-                            if ord(field[0]) > 96:
-                                pieceType = color + "P"
-                                pieceLoc = ord(field[0]) - 97
-                                location = 'col'
-                            else:
-                                pieceType = color + field[0]
-                            moveCol = ord(field[2]) - 97
-                            moveRow = 8 - int(field[3])
-                        elif field[2] == '=':
-                            promotion = color + field[3]
-                            pieceType = color + "P"
-                            moveCol = ord(field[0]) - 97
-                            moveRow = 8 - int(field[1])
-                        else:
-                            pieceType = color + field[0]
-                            if ord(field[1]) < 58: 
-                                pieceLoc = 8 - int(field[1])
-                                location = 'row'
-                            else:
-                                pieceLoc = ord(field[1]) - 97
-                                location = 'col'
-                            moveCol = ord(field[2]) - 97
-                            moveRow = 8 - int(field[3])
-
-                    elif len(field) == 5:
-                        if field[0] == 'O':
-                            pieceType = 'Queen Side Castle'
-                        elif field[2] == 'x':
-                            pieceType = color + field[0]
-                            if ord(field[1]) < 58: 
-                                pieceLoc = 8 - int(field[1])
-                                location = 'row'
-                            else:
-                                pieceLoc = ord(field[1]) - 97
-                                location = 'col'
-                            moveCol = ord(field[3]) - 97
-                            moveRow = 8 - int(field[4])
-
-                    elif len(field) == 6:
-                        promotion = color + field[5]
-                        pieceType = color + "P"
-                        if ord(field[0]) < 58: 
-                            pieceLoc = 8 - int(field[0])
-                            location = 'row'
-                        else:
-                            pieceLoc = ord(field[0]) - 97
-                            location = 'col'
-                        moveCol = ord(field[2]) - 97
-                        moveRow = 8 - int(field[3])
-                    else:
-                        print(field)
-
-                    # Alter board state - move piece
+                    # Alter board state - make move
 
                     # CASTLE
                     if len(pieceType) > 2 :
-                        if color == "W":
-                            moveRow = 7
-                            kingChannel = 0
-                            rookChannel = 2
-                        else:
-                            moveRow = 0
-                            kingChannel = 6
-                            rookChannel = 8
-
-                        if pieceType == "King Side Castle":
-                            board[kingChannel, moveRow, 4] = 0
-                            board[rookChannel, moveRow, 7] = 0
-                            board[kingChannel, moveRow, 6] = 1
-                            board[rookChannel, moveRow, 5] = 1
-                        else:
-                            board[kingChannel, moveRow, 4] = 0
-                            board[rookChannel, moveRow, 0] = 0
-                            board[kingChannel, moveRow, 2] = 1
-                            board[rookChannel, moveRow, 3] = 1
+                        board = self.castleMove(board, color, pieceType)
 
                     # KING movement
                     elif pieceType[1] == "K":
-                        # clear Channel
-                        board[self.channels[pieceType], :, :] = 0
-                        # remove captured piece
-                        board[0:11, moveRow, moveCol] = 0
-                        # place king
-                        board[self.channels[pieceType], moveRow, moveCol] = 1
+                        board = self.castleMove(board, pieceType, moveRow, moveCol)
                         
                     # KNIGHT movement
                     elif pieceType[1] == "N":
-                        # remove captured piece
-                        board[0:11, moveRow, moveCol] = 0
-
-                        # if specific piece noted, search that row / col
-                        if location == 'row':
-                            # clear specified row
-                            board[self.channels[pieceType], pieceLoc, :] = 0
-                            
-                        elif location == 'col':
-                            # clear specified column
-                            board[self.channels[pieceType], :, pieceLoc] = 0
-                            
-                        else:                                                                  # this could be optimized, sets everything to zero***
-                            for x in [-2,2]:
-                                for y in [-1,1]:
-                                    if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
-                                        board[self.channels[pieceType], moveRow + x, moveCol + y] = 0
-                            for y in [-2,2]:
-                                for x in [-1,1]:
-                                    if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
-                                        board[self.channels[pieceType], moveRow + x, moveCol + y] = 0
-
-                        board[self.channels[pieceType], moveRow, moveCol] = 1                    
+                        board = self.knightMove(board, pieceType, moveRow, moveCol, pieceLoc, Location)
 
                     # BISHOP Movement
                     elif pieceType[1] == "B":
-                        # remove captured piece
-                        board[0:11, moveRow, moveCol] = 0
-
-                        startRow = moveRow
-                        startCol = moveCol
-                        notFound = True
-                        # set up first diagonal search from upper left most square
-                        while startRow > 0 and startCol > 0:                                    #optimize later***
-                            startRow -= 1
-                            startCol -= 1
-                        while startRow <= 7 and startCol <= 7 and notFound:
-                            if board[self.channels[pieceType], startRow, startCol] == 1:
-                                notFound = False
-
-                            board[self.channels[pieceType], startRow, startCol] = 0
-                            
-                            startRow += 1
-                            startCol += 1
-                        # set up second diagonal search from lower left most square
-                        startRow = moveRow
-                        startCol = moveCol
-                        while startRow < 7 and startCol > 0 and notFound:
-                            startRow += 1
-                            startCol -= 1
-                        while startRow >= 0 and startCol <= 7 and notFound:
-                            if board[self.channels[pieceType], startRow, startCol] == 1:
-                                notFound = False
-                                
-                            board[self.channels[pieceType], startRow, startCol] = 0
-
-                            startRow -= 1
-                            startCol += 1
-
-                        board[self.channels[pieceType], moveRow, moveCol] = 1
+                        board = self.bishopMove(board, pieceType, moveRow, moveCol)
 
                     # ROOK Movement
                     elif pieceType[1] == "R":
-                        # remove captured piece
-                        board[:, moveRow, moveCol] = 0
-
-                        # if specific piece noted, search that row / col
-                        if location == 'row':
-                            # clear specified row
-                            board[self.channels[pieceType], pieceLoc, :] = 0        # negative pieceLoc signifies that it's a row
-                            
-                        elif location == 'col':
-                            # clear specified column
-                            board[self.channels[pieceType], :, pieceLoc] = 0
-
-                        else:
-                            notFound = True
-                            # search upper col
-                            y = moveRow
-                            while y > 0:
-                                y -= 1
-                                if torch.max(board[0:11, y, moveCol]) > 0:
-                                    if board[self.channels[pieceType], y, moveCol] == 1:
-                                        board[self.channels[pieceType], y, moveCol] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                                
-                            # search lower col
-                            y = moveRow
-                            while y < 7 and notFound:
-                                y += 1
-                                if torch.max(board[0:11, y, moveCol]) > 0:
-                                    if board[self.channels[pieceType], y, moveCol] == 1:
-                                        board[self.channels[pieceType], y, moveCol] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-
-                            # search left row
-                            x = moveCol
-                            while x > 0 and notFound:
-                                x -= 1
-                                if torch.max(board[0:11, moveRow, x]) > 0:
-                                    if board[self.channels[pieceType], moveRow, x] == 1:
-                                        board[self.channels[pieceType], moveRow, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-
-                            # search right row
-                            x = moveCol
-                            while x < 7 and notFound:
-                                x += 1
-                                if torch.max(board[0:11, moveRow, x]) > 0:
-                                    if board[self.channels[pieceType], moveRow, x] == 1:
-                                        board[self.channels[pieceType], moveRow, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-
-                        board[self.channels[pieceType], moveRow, moveCol] = 1
+                        board = self.rookMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
                     # QUEEN Movement  
                     elif pieceType[1] == "Q":
-                        # remove captured piece
-                        board[0:11, moveRow, moveCol] = 0
-
-                        # if specific piece noted, clear that row / col
-                        if location == 'row':
-                            # clear specified row
-                            board[self.channels[pieceType], pieceLoc, :] = 0        # negative pieceLoc signifies that it's a row
-                            
-                        elif location == 'col':
-                            # clear specified column
-                            board[self.channels[pieceType], :, pieceLoc] = 0
-
-                        else:
-                            notFound = True
-                            startRow = moveRow
-                            startCol = moveCol
-
-                            # search upper col
-                            y = moveRow
-                            while y > 0:
-                                y -= 1
-                                if torch.max(board[0:11, y, moveCol]) > 0:
-                                    if board[self.channels[pieceType], y, moveCol] == 1:
-                                        board[self.channels[pieceType], y, moveCol] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                            # search lower col
-                            y = moveRow
-                            while y < 7 and notFound:
-                                y += 1
-                                if torch.max(board[0:11, y, moveCol]) > 0:
-                                    if board[self.channels[pieceType], y, moveCol] == 1:
-                                        board[self.channels[pieceType], y, moveCol] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                            # search left row
-                            x = moveCol
-                            while x > 0 and notFound:
-                                x -= 1
-                                if torch.max(board[0:11, moveRow, x]) > 0:
-                                    if board[self.channels[pieceType], moveRow, x] == 1:
-                                        board[self.channels[pieceType], moveRow, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                            # search right row
-                            x = moveCol
-                            while x < 7 and notFound:
-                                x += 1
-                                if torch.max(board[0:11, moveRow, x]) > 0:
-                                    if board[self.channels[pieceType], moveRow, x] == 1:
-                                        board[self.channels[pieceType], moveRow, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                            # search upper left diagonal
-                            y = moveRow
-                            x = moveCol
-                            while y > 0 and x > 0 and notFound:
-                                y -= 1
-                                x -= 1
-                                if torch.max(board[0:11, y, x]) > 0:
-                                    if board[self.channels[pieceType], y, x] == 1:
-                                        board[self.channels[pieceType], y, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                            # search upper right diagonal
-                            y = moveRow
-                            x = moveCol
-                            while y > 0 and x < 7 and notFound:
-                                y -= 1
-                                x += 1
-                                if torch.max(board[0:11, y, x]) > 0:
-                                    if board[self.channels[pieceType], y, x] == 1:
-                                        board[self.channels[pieceType], y, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                            # search lower left diagonal
-                            y = moveRow
-                            x = moveCol
-                            while y < 7 and x > 0 and notFound:
-                                y += 1
-                                x -= 1
-                                if torch.max(board[0:11, y, x]) > 0:
-                                    if board[self.channels[pieceType], y, x] == 1:
-                                        board[self.channels[pieceType], y, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-                            # search lower right diagonal
-                            y = moveRow
-                            x = moveCol
-                            while y < 7 and x < 7 and notFound:
-                                y += 1
-                                x += 1
-                                if torch.max(board[0:11, y, x]) > 0:
-                                    if board[self.channels[pieceType], y, x] == 1:
-                                        board[self.channels[pieceType], y, x] = 0
-                                        notFound = False
-                                        break
-                                    else:
-                                        break
-
-                        board[self.channels[pieceType], moveRow, moveCol] = 1
+                        board = self.queenMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
                     # PAWN Movement & Promotion
                     elif pieceType[1] == "P":
-                        # clear captured piece
-                        board[0:11, moveRow, moveCol] = 0
-
-                        if color == "W":
-                            direction = 1
-                        else:
-                            direction = -1
-
-                        if not location:
-                            if board[self.channels[pieceType], moveRow + direction, moveCol] == 1:
-                                board[self.channels[pieceType], moveRow + direction, moveCol] = 0
-                            elif board[self.channels[pieceType], moveRow + direction*2, moveCol] == 1:
-                                board[self.channels[pieceType], moveRow + direction*2, moveCol] = 0
-                        else:
-                            board[self.channels[pieceType], moveRow + direction, pieceLoc] = 0
-
-                        if not promotion:
-                            board[self.channels[pieceType], moveRow, moveCol] = 1
-                        else:
-                            board[self.channels[promotion], moveRow, moveCol] = 1
+                        board = self.pawnMove(board, pieceType, moveRow, moveCol, location, color)
                         
                     self.dataset[board] = result        #store board state
 
@@ -498,10 +149,392 @@ class TrainingData:
         board[11, 1, :] = 1
 
         return board
+
+    def parseMove(self, field, color):
+        # initalize move variables
+        moveRow = -1
+        moveCol = -1
+        pieceType = ''
+        pieceLoc = -1
+        location = ''
+        promotion = ''
+
+        # remove checks
+        field = field.strip('+#')
+
+        # parse move data
+        if len(field) == 2:
+            moveCol = ord(field[0]) - 97
+            moveRow = 8 - int(field[1])
+            pieceType = color + "P"
+
+        elif len(field) == 3:
+            if field[0] == 'O':
+                pieceType = 'King Side Castle'
+            else:
+                pieceType = color + field[0]
+                moveCol = ord(field[1]) - 97
+                moveRow = 8 - int(field[2])
+
+        elif len(field) == 4:
+            if field[1] == 'x':
+                if ord(field[0]) > 96:
+                    pieceType = color + "P"
+                    pieceLoc = ord(field[0]) - 97
+                    location = 'col'
+                else:
+                    pieceType = color + field[0]
+                moveCol = ord(field[2]) - 97
+                moveRow = 8 - int(field[3])
+            elif field[2] == '=':
+                promotion = color + field[3]
+                pieceType = color + "P"
+                moveCol = ord(field[0]) - 97
+                moveRow = 8 - int(field[1])
+            else:
+                pieceType = color + field[0]
+                if ord(field[1]) < 58: 
+                    pieceLoc = 8 - int(field[1])
+                    location = 'row'
+                else:
+                    pieceLoc = ord(field[1]) - 97
+                    location = 'col'
+                moveCol = ord(field[2]) - 97
+                moveRow = 8 - int(field[3])
+
+        elif len(field) == 5:
+            if field[0] == 'O':
+                pieceType = 'Queen Side Castle'
+            elif field[2] == 'x':
+                pieceType = color + field[0]
+                if ord(field[1]) < 58: 
+                    pieceLoc = 8 - int(field[1])
+                    location = 'row'
+                else:
+                    pieceLoc = ord(field[1]) - 97
+                    location = 'col'
+                moveCol = ord(field[3]) - 97
+                moveRow = 8 - int(field[4])
+
+        elif len(field) == 6:
+            promotion = color + field[5]
+            pieceType = color + "P"
+            if ord(field[0]) < 58: 
+                pieceLoc = 8 - int(field[0])
+                location = 'row'
+            else:
+                pieceLoc = ord(field[0]) - 97
+                location = 'col'
+            moveCol = ord(field[2]) - 97
+            moveRow = 8 - int(field[3])
+        else:
+            print(field)
+        return moveRow, moveCol, pieceType, pieceLoc, location, promotion
                                 
-                        
+    def castleMove(self, board, color, pieceType):
+        if color == "W":
+            moveRow = 7
+            kingChannel = 0
+            rookChannel = 2
+        else:
+            moveRow = 0
+            kingChannel = 6
+            rookChannel = 8
 
+        if pieceType == "King Side Castle":
+            board[kingChannel, moveRow, 4] = 0
+            board[rookChannel, moveRow, 7] = 0
+            board[kingChannel, moveRow, 6] = 1
+            board[rookChannel, moveRow, 5] = 1
+        else:
+            board[kingChannel, moveRow, 4] = 0
+            board[rookChannel, moveRow, 0] = 0
+            board[kingChannel, moveRow, 2] = 1
+            board[rookChannel, moveRow, 3] = 1
+        return board
 
+    def kingMove(self, board, pieceType, moveRow, moveCol):
+        # clear Channel
+        board[self.channels[pieceType], :, :] = 0
+        # remove captured piece
+        board[0:12, moveRow, moveCol] = 0
+        # place king
+        board[self.channels[pieceType], moveRow, moveCol] = 1
+        
+        return board
+
+    def knightMove(self, board, pieceType, moveRow, moveCol, pieceLoc, Location):
+        # remove captured piece
+        board[0:12, moveRow, moveCol] = 0
+
+        # if specific piece noted, search that row / col
+        if location == 'row':
+            # clear specified row
+            board[self.channels[pieceType], pieceLoc, :] = 0
+            
+        elif location == 'col':
+            # clear specified column
+            board[self.channels[pieceType], :, pieceLoc] = 0
+            
+        else:                                                                  # this could be optimized, sets everything to zero***
+            for x in [-2,2]:
+                for y in [-1,1]:
+                    if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
+                        board[self.channels[pieceType], moveRow + x, moveCol + y] = 0
+            for y in [-2,2]:
+                for x in [-1,1]:
+                    if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
+                        board[self.channels[pieceType], moveRow + x, moveCol + y] = 0
+
+        board[self.channels[pieceType], moveRow, moveCol] = 1
+
+        return board
+
+    def bishopMove(self, board, pieceType, moveRow, moveCol):
+        # remove captured piece
+        board[0:12, moveRow, moveCol] = 0
+
+        startRow = moveRow
+        startCol = moveCol
+        notFound = True
+        # set up first diagonal search from upper left most square
+        while startRow > 0 and startCol > 0:                                    #optimize later***
+            startRow -= 1
+            startCol -= 1
+        while startRow <= 7 and startCol <= 7 and notFound:
+            if board[self.channels[pieceType], startRow, startCol] == 1:
+                notFound = False
+
+            board[self.channels[pieceType], startRow, startCol] = 0
+            
+            startRow += 1
+            startCol += 1
+        # set up second diagonal search from lower left most square
+        startRow = moveRow
+        startCol = moveCol
+        while startRow < 7 and startCol > 0 and notFound:
+            startRow += 1
+            startCol -= 1
+        while startRow >= 0 and startCol <= 7 and notFound:
+            if board[self.channels[pieceType], startRow, startCol] == 1:
+                notFound = False
+                
+            board[self.channels[pieceType], startRow, startCol] = 0
+
+            startRow -= 1
+            startCol += 1
+
+        board[self.channels[pieceType], moveRow, moveCol] = 1
+
+        return board
+
+    def rookMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
+        # remove captured piece
+        board[:, moveRow, moveCol] = 0
+
+        # if specific piece noted, search that row / col
+        if location == 'row':
+            # clear specified row
+            board[self.channels[pieceType], pieceLoc, :] = 0        # negative pieceLoc signifies that it's a row
+            
+        elif location == 'col':
+            # clear specified column
+            board[self.channels[pieceType], :, pieceLoc] = 0
+
+        else:
+            notFound = True
+            # search upper col
+            y = moveRow
+            while y > 0:
+                y -= 1
+                if torch.max(board[0:12, y, moveCol]) > 0:
+                    if board[self.channels[pieceType], y, moveCol] == 1:
+                        board[self.channels[pieceType], y, moveCol] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+                
+            # search lower col
+            y = moveRow
+            while y < 7 and notFound:
+                y += 1
+                if torch.max(board[0:12, y, moveCol]) > 0:
+                    if board[self.channels[pieceType], y, moveCol] == 1:
+                        board[self.channels[pieceType], y, moveCol] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+
+            # search left row
+            x = moveCol
+            while x > 0 and notFound:
+                x -= 1
+                if torch.max(board[0:12, moveRow, x]) > 0:
+                    if board[self.channels[pieceType], moveRow, x] == 1:
+                        board[self.channels[pieceType], moveRow, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+
+            # search right row
+            x = moveCol
+            while x < 7 and notFound:
+                x += 1
+                if torch.max(board[0:12, moveRow, x]) > 0:
+                    if board[self.channels[pieceType], moveRow, x] == 1:
+                        board[self.channels[pieceType], moveRow, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+
+        board[self.channels[pieceType], moveRow, moveCol] = 1
+
+        return board
+
+    def queenMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
+        # remove captured piece
+        board[0:12, moveRow, moveCol] = 0
+
+        # if specific piece noted, clear that row / col
+        if location == 'row':
+            # clear specified row
+            board[self.channels[pieceType], pieceLoc, :] = 0        # negative pieceLoc signifies that it's a row
+            
+        elif location == 'col':
+            # clear specified column
+            board[self.channels[pieceType], :, pieceLoc] = 0
+
+        else:
+            notFound = True
+            startRow = moveRow
+            startCol = moveCol
+
+            # search upper col
+            y = moveRow
+            while y > 0:
+                y -= 1
+                if torch.max(board[0:12, y, moveCol]) > 0:
+                    if board[self.channels[pieceType], y, moveCol] == 1:
+                        board[self.channels[pieceType], y, moveCol] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+            # search lower col
+            y = moveRow
+            while y < 7 and notFound:
+                y += 1
+                if torch.max(board[0:12, y, moveCol]) > 0:
+                    if board[self.channels[pieceType], y, moveCol] == 1:
+                        board[self.channels[pieceType], y, moveCol] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+            # search left row
+            x = moveCol
+            while x > 0 and notFound:
+                x -= 1
+                if torch.max(board[0:12, moveRow, x]) > 0:
+                    if board[self.channels[pieceType], moveRow, x] == 1:
+                        board[self.channels[pieceType], moveRow, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+            # search right row
+            x = moveCol
+            while x < 7 and notFound:
+                x += 1
+                if torch.max(board[0:12, moveRow, x]) > 0:
+                    if board[self.channels[pieceType], moveRow, x] == 1:
+                        board[self.channels[pieceType], moveRow, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+            # search upper left diagonal
+            y = moveRow
+            x = moveCol
+            while y > 0 and x > 0 and notFound:
+                y -= 1
+                x -= 1
+                if torch.max(board[0:12, y, x]) > 0:
+                    if board[self.channels[pieceType], y, x] == 1:
+                        board[self.channels[pieceType], y, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+            # search upper right diagonal
+            y = moveRow
+            x = moveCol
+            while y > 0 and x < 7 and notFound:
+                y -= 1
+                x += 1
+                if torch.max(board[0:12, y, x]) > 0:
+                    if board[self.channels[pieceType], y, x] == 1:
+                        board[self.channels[pieceType], y, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+            # search lower left diagonal
+            y = moveRow
+            x = moveCol
+            while y < 7 and x > 0 and notFound:
+                y += 1
+                x -= 1
+                if torch.max(board[0:12, y, x]) > 0:
+                    if board[self.channels[pieceType], y, x] == 1:
+                        board[self.channels[pieceType], y, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+            # search lower right diagonal
+            y = moveRow
+            x = moveCol
+            while y < 7 and x < 7 and notFound:
+                y += 1
+                x += 1
+                if torch.max(board[0:12, y, x]) > 0:
+                    if board[self.channels[pieceType], y, x] == 1:
+                        board[self.channels[pieceType], y, x] = 0
+                        notFound = False
+                        break
+                    else:
+                        break
+
+        board[self.channels[pieceType], moveRow, moveCol] = 1
+
+        return board
+
+    def pawnMove(board, pieceType, moveRow, moveCol, location, color):
+        # clear captured piece
+        board[0:12, moveRow, moveCol] = 0
+
+        if color == "W":
+            direction = 1
+        else:
+            direction = -1
+
+        if not location:
+            if board[self.channels[pieceType], moveRow + direction, moveCol] == 1:
+                board[self.channels[pieceType], moveRow + direction, moveCol] = 0
+            elif board[self.channels[pieceType], moveRow + direction*2, moveCol] == 1:
+                board[self.channels[pieceType], moveRow + direction*2, moveCol] = 0
+        else:
+            board[self.channels[pieceType], moveRow + direction, pieceLoc] = 0
+
+        if not promotion:
+            board[self.channels[pieceType], moveRow, moveCol] = 1
+        else:
+            board[self.channels[promotion], moveRow, moveCol] = 1
 
 # testing
 TD = TrainingData("D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMsTest.pgn")

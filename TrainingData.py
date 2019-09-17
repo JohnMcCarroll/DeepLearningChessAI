@@ -2,7 +2,7 @@ import os
 import re
 import torch
 import numpy as np
-import time
+import random
 
 """
     TrainingData
@@ -14,7 +14,7 @@ import time
 class TrainingData:
     def __init__(self, filePath):
         # set instance variables
-        self.dataset = dict()
+        self.dataset = list()
         self.channels = dict()      # piece type hashtable
         self.channels['WK'] = 0
         self.channels['WQ'] = 1
@@ -33,45 +33,58 @@ class TrainingData:
         file = open(filePath, 'r', 1, encoding='utf-8')
         result = ""
         meetsCriteria = False
+        isStandard = True
 
         # parse through file, collecting positions / result from games that meet criteria (no time or abandonment wins...)
         for line in file:
-            fields = line.split(" ")
-            if fields[0] == "[Termination" and not re.search("time", line) and not re.search("abandoned", line):
-                meetsCriteria = True
 
-            if fields[0] == "1." and meetsCriteria:
+            fields = line.split(" ")
+            # reset flags between games:
+            if fields[0] == "[Site":
+                meetsCriteria = False
+                isStandard = True
+
+            if fields[0] == "[Termination" and not re.search("time", line) and not re.search("abandoned", line):        #check criteria
+                meetsCriteria = True
+            
+            if fields[0] == "[Variant":
+                isStandard = False
+
+            if fields[0] == "1." and meetsCriteria and isStandard:
                 # reset criteria filter
                 meetsCriteria = False
+                isStandard = True
                 
                 # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
                 line = re.split(r'\d\[', line)[0]       # cleaning up line
                 fields = line.split(" ")
-                result = fields[-1][0]
+                result = fields[-1].split('\-')[0]
 
                 # parse game moves and pair with result
 
                 # get initial board state
                 board = self.initialBoard()
-                self.dataset[board] = result        #store first board state
+                self.dataset.append((board, result))        #store first board state
+
+                # set prevColor for color determination
+                prevColor = 'B'
 
                 for field in fields:
                     # filter fields
-                    if field[-1] == '.' or field[-1] == '}' or field[0] == '{' or re.match(r'\d\-\d', field):
-                        prevField = field
+                    if field[-1] == '.' or field[-1] == '}' or field[0] == '{' or re.search(r'\d\-', field):
                         continue
 
                     # color determination
-                    if prevField[-3:-1] == '..':
+                    if prevColor == 'W':
                         color = "B"
                         board[12:14, :, :] = 0          #opposite piece we are moving because this indicates whose turn it WILL be (0 = white's move, 1 = black's move)
-                    elif prevField[-1] == '.':
+                    else:
                         color = "W"
                         board[12:14, :, :] = 1
                 
 
                     # store prevField
-                    prevField = field
+                    prevColor = color
 
                     # parse move
                     moveRow, moveCol, pieceType, pieceLoc, location, promotion = self.parseMove(field, color)
@@ -80,15 +93,15 @@ class TrainingData:
 
                     # CASTLE
                     if len(pieceType) > 2 :
-                        board = self.castleMove(board, color, pieceType)
+                        board = self.castleMove(board, pieceType, color)
 
                     # KING movement
                     elif pieceType[1] == "K":
-                        board = self.castleMove(board, pieceType, moveRow, moveCol)
+                        board = self.kingMove(board, pieceType, moveRow, moveCol)
                         
                     # KNIGHT movement
                     elif pieceType[1] == "N":
-                        board = self.knightMove(board, pieceType, moveRow, moveCol, pieceLoc, Location)
+                        board = self.knightMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
                     # BISHOP Movement
                     elif pieceType[1] == "B":
@@ -104,12 +117,12 @@ class TrainingData:
 
                     # PAWN Movement & Promotion
                     elif pieceType[1] == "P":
-                        board = self.pawnMove(board, pieceType, moveRow, moveCol, location, color)
+                        board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
                         
-                    self.dataset[board] = result        #store board state
+                    self.dataset.append((board, result))        #store board state
 
                     # TESTING: print resulting board state:
-                    print(board)
+                    print(len(self.dataset))
 
     def size(self):
         return len(self.dataset)
@@ -231,7 +244,7 @@ class TrainingData:
             print(field)
         return moveRow, moveCol, pieceType, pieceLoc, location, promotion
                                 
-    def castleMove(self, board, color, pieceType):
+    def castleMove(self, board, pieceType, color):
         if color == "W":
             moveRow = 7
             kingChannel = 0
@@ -263,7 +276,7 @@ class TrainingData:
         
         return board
 
-    def knightMove(self, board, pieceType, moveRow, moveCol, pieceLoc, Location):
+    def knightMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
         # remove captured piece
         board[0:12, moveRow, moveCol] = 0
 
@@ -330,7 +343,7 @@ class TrainingData:
 
     def rookMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
         # remove captured piece
-        board[:, moveRow, moveCol] = 0
+        board[0:12, moveRow, moveCol] = 0
 
         # if specific piece noted, search that row / col
         if location == 'row':
@@ -514,7 +527,7 @@ class TrainingData:
 
         return board
 
-    def pawnMove(board, pieceType, moveRow, moveCol, location, color):
+    def pawnMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion):
         # clear captured piece
         board[0:12, moveRow, moveCol] = 0
 
@@ -536,6 +549,8 @@ class TrainingData:
         else:
             board[self.channels[promotion], moveRow, moveCol] = 1
 
+        return board
+
 # testing
-TD = TrainingData("D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMsTest.pgn")
+TD = TrainingData("D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn")
 print(TD.size())

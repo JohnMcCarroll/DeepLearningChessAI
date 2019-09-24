@@ -58,7 +58,14 @@ class TrainingData(torch.utils.data.Dataset):
                 # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
                 line = re.split(r'\d\[', line)[0]       # cleaning up line
                 fields = line.split(" ")
-                result = fields[-1].split('\-')[0]
+                result = fields[-1].split('-')[0]
+                
+                if result == "0":
+                    result = 0.0
+                elif result == "1":
+                    result = 1.0
+                elif result == "1/2":
+                    result = 0.5
 
                 # parse game moves and pair with result
 
@@ -82,7 +89,6 @@ class TrainingData(torch.utils.data.Dataset):
                         color = "W"
                         board[12:14, :, :] = 1
                 
-
                     # store prevField
                     prevColor = color
 

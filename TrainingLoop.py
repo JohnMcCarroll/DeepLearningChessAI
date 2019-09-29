@@ -7,45 +7,58 @@ import numpy as np
 import TrainingData as data
 import pickle
 import CNN
+import matplotlib.pyplot as plt
 
-# Data Prep
+# loading in 
 
-#with open('D:\Machine Learning\DeepLearningChessAI\DatasetTest.db', 'wb') as file:
-#    train_set = data.TrainingData('D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMsTest.pgn')
-#    pickle.dump(train_set, file)
+# Creates new network
+#with open('D:\Machine Learning\DeepLearningChessAI\CNN_proto1.cnn', 'wb') as file:
+#    pickle.dump(CNN.CNN(), file)
 
 with open('D:\Machine Learning\DeepLearningChessAI\DatasetTest.db', 'rb') as file:
     train_set = pickle.load(file)
 
-train_loader = torch.utils.data.DataLoader(train_set, 100)
+with open('D:\Machine Learning\DeepLearningChessAI\CNN_proto1.cnn', 'rb') as file:
+    network = pickle.load(file)
 
-boards, results = next(iter(train_loader))
+# initialize hyperparameters
+batchSize = 100
+learningRate = 0.0003
 
-# converting type... might have to redownload data
+# setting up training data
+train_set, validation_set, dummy_set = torch.utils.data.random_split(train_set, [166000, 18000, 72])
+train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
+optimizer = optim.Adam(network.parameters(), learningRate)
 
-results = results.long()
+# setting up validation data
+validation_loader = torch.utils.data.DataLoader(validation_set, 1000)
+val_boards, val_results = next(iter(validation_loader))
+val_results = val_results.float().reshape([-1, 1])
+val_losses = list()
 
-network = CNN.CNN()
+for batch in train_loader:
+    boards, results = batch
 
-# calculating loss
-preds = network(boards)
-print(preds.type())
-loss = F.cross_entropy(preds, results)
-print('before:')
-print(loss.item())
+    # converting type & reshaping
+    results = results.float().reshape([-1, 1])
 
-# calculating gradients
-loss.backward()
-optimizer = optim.Adam(network.parameters(), 0.01)
-optimizer.step() # updating weights
+    # calculating loss
+    preds = network(boards)
+    loss = F.mse_loss(preds, results)
 
-# checking if learning
-pred = network(boards)
-loss = F.cross_entropy(preds, results)
-print('after:')
-print(loss.item())
+    before = loss.item()
 
-# save / load network? shuffle data before training loop? and implement training loop?
+    # calculating gradients
+    optimizer.zero_grad()   #clear out accumulated gradients
+    loss.backward()
+    optimizer.step() # updating weights
 
-# classification issue -> labels from 0-1, interpretted as two classes. my output layer = 1 node, interpretted as one class...
-# training issue / tensor type issue -> ***preds.type() = float***  ...need network to make predictions as double / float data types, long is only in integers... might explain why loss is not decreasing / why network only outputs 0 lol
+    # benchmark if learning
+    preds = network(val_boards)
+    loss = F.mse_loss(preds, val_results)
+    val_losses.append(loss.item())
+
+plt.plot(val_losses)
+plt.ylabel('validation loss')
+plt.xlabel('batch number')
+plt.show()

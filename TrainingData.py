@@ -1,6 +1,7 @@
 import os
 import re
 import torch
+import torch.utils.data
 import numpy as np
 import random
 
@@ -11,7 +12,7 @@ import random
     and form training and cross validation (and test?) sets.
 """
 
-class TrainingData(torch.utils.data.Dataset):
+class TrainingData (torch.utils.data.Dataset):
     def __init__(self, filePath):
         # set instance variables
         self.dataset = list()

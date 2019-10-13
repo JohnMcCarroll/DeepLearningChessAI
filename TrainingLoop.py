@@ -13,21 +13,30 @@ import matplotlib.pyplot as plt
 
     # loading in network and data
 
-# Creates new network
-#with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'wb') as file:
-#    pickle.dump(CNN.CNN(), file)
+        #trainingData = data.TrainingData('D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMsTest.pgn')
+        #print('data loaded')
+        #train, test, val = torch.utils.data.random_split(trainingData, [165666, 9203, 9203])
+        #print('data segregated')
+
+
+    # Creates new network
+#with open('D:\Machine Learning\DeepLearningChessAI\cudaTest.cnn', 'wb') as file:
+#    pickle.dump(CNN.CNN().cuda(), file)
 
 with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file:
     network = pickle.load(file)
+    network.cuda()
 
 with open('D:\Machine Learning\DeepLearningChessAI\small_train_set.db', 'rb') as file:
-    train_set = pickle.load(file)
+    train_set = pickle.load(file).cudaDataset
+    
 
 with open('D:\Machine Learning\DeepLearningChessAI\small_test_set.db', 'rb') as file:
-    test_set = pickle.load(file)
+    test_set = pickle.load(file).cudaDataset
 
 with open('D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
-    val_set = pickle.load(file)
+    val_set = pickle.load(file).cudaDataset
+
 
     # initialize hyperparameters
 batchSize = 1000
@@ -46,13 +55,13 @@ train_losses = list()
     # setting up test data
 test_loader = torch.utils.data.DataLoader(test_set, 9203)
 test_boards, test_results = next(iter(test_loader))
-test_results = test_results.float().reshape([-1, 1])
+test_results = test_results.float().reshape([-1, 1]).cuda()
 test_losses = list()
 
     # setting up validation data
 val_loader = torch.utils.data.DataLoader(val_set, 9203)
 val_boards, val_results = next(iter(val_loader))
-val_results = val_results.float().reshape([-1, 1])
+val_results = val_results.float().reshape([-1, 1]).cuda()
 val_losses = list()
 
 
@@ -64,8 +73,11 @@ for epoch in range(epoch):
 
         boards, results = batch
 
+        print(boards)
+        print(results)
+
         # converting type & reshaping
-        results = results.float().reshape([-1, 1])
+        results = results.float().reshape([-1, 1]).cuda()
 
         # calculating loss
         preds = network(boards)

@@ -15,19 +15,19 @@ class CNN(nn.Module):
 
         # conv1 layer
         t = self.conv1(t)
-        t = F.LeakyReLU(t, 0.05)
+        t = F.leaky_relu(t, 0.05)
 
         # conv2 layer
         t = self.conv2(t)
-        t = F.LeakyReLU(t, 0.05)
+        t = F.leaky_relu(t, 0.05)
 
         # conv3 layer
         t = self.conv3(t)
-        t = F.LeakyReLU(t, 0.05)
+        t = F.leaky_relu(t, 0.05)
 
         # linear output layer
         t = t.reshape(-1, 8*8*6)
         t = self.out(t)
-        t = F.LeakyReLU(t, 0.05)
+        t = F.leaky_relu(t, 0.05)
 
         return t

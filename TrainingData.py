@@ -15,7 +15,8 @@ import random
 class TrainingData (torch.utils.data.Dataset):
     def __init__(self, filePath):
         # set instance variables
-        self.dataset = list()
+        self.dataset = list()           # dataset
+        self.cudaDataset = list()       #for gpu processing
         self.channels = dict()      # piece type hashtable
         self.channels['WK'] = 0
         self.channels['WQ'] = 1
@@ -73,6 +74,7 @@ class TrainingData (torch.utils.data.Dataset):
                 # get initial board state
                 board = self.initialBoard()
                 self.dataset.append((board, result))        #store first board state
+                self.cudaDataset.append((board.cuda(), result))     #store in gpu form
 
                 # set prevColor for color determination
                 prevColor = 'B'
@@ -127,6 +129,7 @@ class TrainingData (torch.utils.data.Dataset):
                         board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
                         
                     self.dataset.append((board, result))        #store board state
+                    self.cudaDataset.append((board.cuda(), result))     #store gpu form
 
                     # TESTING: print resulting board state:
                     # self.displayBoard(board)
@@ -606,3 +609,11 @@ class TrainingData (torch.utils.data.Dataset):
             board[self.channels[promotion], moveRow, moveCol] = 1
 
         return board
+
+    # populate cudaDataset with gpu converted dataset
+    def cuda(self):
+        for datum in self.dataset:
+            tensor, result = datum
+            self.cudaDataset.append((tensor.cuda(), result))
+
+            print(self.cudaDataset)

@@ -9,33 +9,54 @@ import pickle
 import CNN
 import matplotlib.pyplot as plt
 
-# loading in 
+# setup
+
+    # loading in network and data
 
 # Creates new network
-with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'wb') as file:
-    pickle.dump(CNN.CNN(), file)
-
-with open('D:\Machine Learning\DeepLearningChessAI\DatasetTest.db', 'rb') as file:
-    train_set = pickle.load(file)
+#with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'wb') as file:
+#    pickle.dump(CNN.CNN(), file)
 
 with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file:
     network = pickle.load(file)
 
-# initialize hyperparameters
-batchSize = 100
+with open('D:\Machine Learning\DeepLearningChessAI\small_train_set.db', 'rb') as file:
+    train_set = pickle.load(file)
+
+with open('D:\Machine Learning\DeepLearningChessAI\small_test_set.db', 'rb') as file:
+    test_set = pickle.load(file)
+
+with open('D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
+    val_set = pickle.load(file)
+
+    # initialize hyperparameters
+batchSize = 1000
 learningRate = 0.0001
 epoch = 1
 
-# setting up training data
-train_set, validation_set, dummy_set = torch.utils.data.random_split(train_set, [166000, 18000, 72])        #prob shouldnt be random split in val is benchmark between networks
-train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
+    # init optimizer
 optimizer = optim.Adam(network.parameters(), learningRate)
 
-# setting up validation data
-validation_loader = torch.utils.data.DataLoader(validation_set, 10000)
-val_boards, val_results = next(iter(validation_loader))
+# organize data
+
+    # train data
+train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
+train_losses = list()
+
+    # setting up test data
+test_loader = torch.utils.data.DataLoader(test_set, 9203)
+test_boards, test_results = next(iter(test_loader))
+test_results = test_results.float().reshape([-1, 1])
+test_losses = list()
+
+    # setting up validation data
+val_loader = torch.utils.data.DataLoader(val_set, 9203)
+val_boards, val_results = next(iter(val_loader))
 val_results = val_results.float().reshape([-1, 1])
 val_losses = list()
+
+
+# training loop
 
 for epoch in range(epoch):
 
@@ -50,24 +71,26 @@ for epoch in range(epoch):
         preds = network(boards)
         loss = F.mse_loss(preds, results)
 
+        train_losses.append(loss.item())    # store train loss for batch
+
         # calculating gradients
         optimizer.zero_grad()   #clear out accumulated gradients
         loss.backward()
         optimizer.step() # updating weights
 
         # benchmark if learning
-        preds = network(val_boards)
-        loss = F.mse_loss(preds, val_results)
-        val_losses.append(loss.item())
+        preds = network(test_boards)
+        loss = F.mse_loss(preds, test_results)
+        test_losses.append(loss.item())
 
-    plt.plot(val_losses)
-    plt.ylabel('validation loss')
+    plt.plot(test_losses)
+    plt.ylabel('test loss')
     plt.xlabel('batch number')
     plt.show()
 
 # save network
-with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'wb') as file:
-    pickle.dump(network, file)
+#with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'wb') as file:
+ #   pickle.dump(network, file)
 
 
 

@@ -131,7 +131,7 @@ class TrainingData (torch.utils.data.Dataset):
                             board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
                             
                         self.dataset.append((board, result))        #store board state
-                        #self.cudaDataset.append((board.cuda(), result))     #store gpu form
+                        self.cudaDataset.append((board.cuda(), result))     #store gpu form
 
                         # TESTING: print resulting board state:
                         # self.displayBoard(board)

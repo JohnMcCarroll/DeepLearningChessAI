@@ -15,75 +15,36 @@ import time
 
     # loading in network and data
 
-"""
-trainingData = data.TrainingData('D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
-print('data loaded')
-print(len(trainingData.dataset))
-"""
-with open(r"D:\Machine Learning\DeepLearningChessAI\full_dataset.db", 'rb') as file:
-    #pickle.dump(trainingData.dataset, file, protocol=2)
-    trainingData = pickle.load(file)
-
-print('dataset loaded')
-
-train, test, val = torch.utils.data.random_split(trainingData, [22525324, 1251407, 1251407])
-print('data segregated')
-
-train_set = list()
-test_set = list()
-val_set = list()
-
-for index in train.indices:
-    train_set.append(train.dataset[index])
-
-for index in test.indices:
-    test_set.append(test.dataset[index])
-
-for index in val.indices:
-    val_set.append(val.dataset[index])
-
     # Creates new network
-#with open('D:\Machine Learning\DeepLearningChessAI\cudaTest.cnn', 'wb') as file:
-#    pickle.dump(CNN.CNN().cuda(), file)
+with open('D:\Machine Learning\DeepLearningChessAI\cudaTest.cnn', 'rb') as file:
+    #pickle.dump(CNN.CNN().cuda(), file)
+    network = pickle.load(file)
 
 #with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
 #    network = pickle.load(file)
 #    network.cuda()
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\train_set.db', 'wb') as file:
-    #train_set = pickle.load(file)
-    #print(len(train_set))
-    pickle.dump(train_set, file, protocol=2)
+with open(r'D:\Machine Learning\DeepLearningChessAI\small_train_set.db', 'rb') as file:
+    train_set = pickle.load(file)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\test_set.db', 'wb') as file:
-    #test_set = pickle.load(file)
-    pickle.dump(test_set, file, protocol=2)
+with open(r'D:\Machine Learning\DeepLearningChessAI\small_test_set.db', 'rb') as file:
+    test_set = pickle.load(file)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\val_set.db', 'wb') as file:
-    #val_set = pickle.load(file)
-    pickle.dump(val_set, file, protocol=2)
+with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
+    val_set = pickle.load(file)
 
 
     # initialize hyperparameters
 batchSize = 1000
 learningRate = 0.0001
-epoch = 1
+epoch = 10
 
     # init optimizer
-#optimizer = optim.Adam(network.parameters(), learningRate)
+optimizer = optim.Adam(network.parameters(), learningRate)
 
 # organize data
 
     # train data
-print(len(train_set))
-print(len(test_set))
-print(len(val_set))
-
-time.sleep(10)
-
-
-
-
 train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
 train_losses = list()
 
@@ -102,14 +63,13 @@ val_losses = list()
 
 # training loop
 
+#add loops for testing hyperparams / architectures
+
 for epoch in range(epoch):
 
     for batch in train_loader:
 
         boards, results = batch
-
-        print(boards.size())
-        print(results.size())
 
         # converting type & reshaping
         results = results.float().reshape([-1, 1]).cuda()       #switch to gpu
@@ -126,19 +86,25 @@ for epoch in range(epoch):
         optimizer.step() # updating weights
 
         # benchmark if learning
-        preds = network(test_boards)
-        loss = F.mse_loss(preds, test_results)
-        test_losses.append(loss.item())
+        test_preds = network(test_boards)
+        test_loss = F.mse_loss(test_preds, test_results)
+        test_losses.append(test_loss.item())
 
-    plt.plot(test_losses)
-    plt.ylabel('test loss')
-    plt.xlabel('batch number')
-    plt.show()
+plt.plot(test_losses)
+plt.ylabel('test loss')
+plt.xlabel('batch number')
+plt.show()
+
+plt.plot(train_losses)
+plt.ylabel('train loss')
+plt.xlabel('prediction number')
+plt.show()
+
+
 
 # save network
 #with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'wb') as file:
  #   pickle.dump(network, file)
-
 
 
 

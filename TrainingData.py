@@ -14,125 +14,130 @@ import random
 
 class TrainingData (torch.utils.data.Dataset):
     def __init__(self, filePath):
-        # set instance variables
-        self.dataset = list()           # dataset
-        self.cudaDataset = list()       #for gpu processing
-        self.channels = dict()      # piece type hashtable
-        self.channels['WK'] = 0
-        self.channels['WQ'] = 1
-        self.channels['WR'] = 2
-        self.channels['WB'] = 3
-        self.channels['WN'] = 4
-        self.channels['WP'] = 5
-        self.channels['BK'] = 6
-        self.channels['BQ'] = 7
-        self.channels['BR'] = 8
-        self.channels['BB'] = 9
-        self.channels['BN'] = 10
-        self.channels['BP'] = 11
+        try:
 
-        # open training data file
-        file = open(filePath, 'r', 1, encoding='utf-8')
-        result = ""
-        meetsCriteria = False
-        isStandard = True
+            # set instance variables
+            self.dataset = list()           # dataset
+            self.cudaDataset = list()       #for gpu processing
+            self.channels = dict()      # piece type hashtable
+            self.channels['WK'] = 0
+            self.channels['WQ'] = 1
+            self.channels['WR'] = 2
+            self.channels['WB'] = 3
+            self.channels['WN'] = 4
+            self.channels['WP'] = 5
+            self.channels['BK'] = 6
+            self.channels['BQ'] = 7
+            self.channels['BR'] = 8
+            self.channels['BB'] = 9
+            self.channels['BN'] = 10
+            self.channels['BP'] = 11
 
-        # parse through file, collecting positions / result from games that meet criteria (no time or abandonment wins...)
-        for line in file:
+            # open training data file
+            file = open(filePath, 'r', 1, encoding='utf-8')
+            result = ""
+            meetsCriteria = False
+            isStandard = True
 
-            fields = line.split(" ")
-            # reset flags between games:
-            if fields[0] == "[Site":
-                meetsCriteria = False
-                isStandard = True
+            # parse through file, collecting positions / result from games that meet criteria (no time or abandonment wins...)
+            for line in file:
 
-            if fields[0] == "[Termination" and not re.search("time", line) and not re.search("abandoned", line):        #check criteria
-                meetsCriteria = True
-            
-            if fields[0] == "[Variant":
-                isStandard = False
-
-            if fields[0] == "1." and meetsCriteria and isStandard:
-                # reset criteria filter
-                meetsCriteria = False
-                isStandard = True
-                
-                # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
-                line = re.split(r'\d\[', line)[0]       # cleaning up line
                 fields = line.split(" ")
-                result = fields[-1].split('-')[0]
+                # reset flags between games:
+                if fields[0] == "[Site":
+                    meetsCriteria = False
+                    isStandard = True
+
+                if fields[0] == "[Termination" and not re.search("time", line) and not re.search("abandoned", line):        #check criteria
+                    meetsCriteria = True
                 
-                if result == "0":
-                    result = 0.0
-                elif result == "1":
-                    result = 1.0
-                elif result == "1/2":
-                    result = 0.5
+                if fields[0] == "[Variant":
+                    isStandard = False
 
-                # parse game moves and pair with result
+                if fields[0] == "1." and meetsCriteria and isStandard:
+                    # reset criteria filter
+                    meetsCriteria = False
+                    isStandard = True
+                    
+                    # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
+                    line = re.split(r'\d\[', line)[0]       # cleaning up line
+                    fields = line.split(" ")
+                    result = fields[-1].split('-')[0]
+                    
+                    if result == "0":
+                        result = 0.0
+                    elif result == "1":
+                        result = 1.0
+                    elif result == "1/2":
+                        result = 0.5
 
-                # get initial board state
-                board = self.initialBoard()
-                self.dataset.append((board, result))        #store first board state
-                self.cudaDataset.append((board.cuda(), result))     #store in gpu form
+                    # parse game moves and pair with result
 
-                # set prevColor for color determination
-                prevColor = 'B'
+                    # get initial board state
+                    board = self.initialBoard()
+                    self.dataset.append((board, result))        #store first board state
+                    self.cudaDataset.append((board.cuda(), result))     #store in gpu form
 
-                for field in fields:
-                    # filter fields
-                    if field[-1] == '.' or field[-1] == '}' or field[0] == '{' or re.search(r'\d\-', field):
-                        continue
+                    # set prevColor for color determination
+                    prevColor = 'B'
 
-                    # color determination
-                    if prevColor == 'W':
-                        color = "B"
-                        board[12:14, :, :] = 0          #opposite piece we are moving because this indicates whose turn it WILL be (0 = white's move, 1 = black's move)
-                    else:
-                        color = "W"
-                        board[12:14, :, :] = 1
-                
-                    # store prevField
-                    prevColor = color
+                    for field in fields:
+                        # filter fields
+                        if field[-1] == '.' or field[-1] == '}' or field[0] == '{' or re.search(r'\d\-', field):
+                            continue
 
-                    # parse move
-                    moveRow, moveCol, pieceType, pieceLoc, location, promotion = self.parseMove(field, color)
+                        # color determination
+                        if prevColor == 'W':
+                            color = "B"
+                            board[12:14, :, :] = 0          #opposite piece we are moving because this indicates whose turn it WILL be (0 = white's move, 1 = black's move)
+                        else:
+                            color = "W"
+                            board[12:14, :, :] = 1
+                    
+                        # store prevField
+                        prevColor = color
 
-                    # Alter board state - make move
+                        # parse move
+                        moveRow, moveCol, pieceType, pieceLoc, location, promotion = self.parseMove(field, color)
 
-                    # CASTLE
-                    if len(pieceType) > 2 :
-                        board = self.castleMove(board, pieceType, color)
+                        # Alter board state - make move
 
-                    # KING movement
-                    elif pieceType[1] == "K":
-                        board = self.kingMove(board, pieceType, moveRow, moveCol)
-                        
-                    # KNIGHT movement
-                    elif pieceType[1] == "N":
-                        board = self.knightMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
+                        # CASTLE
+                        if len(pieceType) > 2 :
+                            board = self.castleMove(board, pieceType, color)
 
-                    # BISHOP Movement
-                    elif pieceType[1] == "B":
-                        board = self.bishopMove(board, pieceType, moveRow, moveCol)
+                        # KING movement
+                        elif pieceType[1] == "K":
+                            board = self.kingMove(board, pieceType, moveRow, moveCol)
+                            
+                        # KNIGHT movement
+                        elif pieceType[1] == "N":
+                            board = self.knightMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
-                    # ROOK Movement
-                    elif pieceType[1] == "R":
-                        board = self.rookMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
+                        # BISHOP Movement
+                        elif pieceType[1] == "B":
+                            board = self.bishopMove(board, pieceType, moveRow, moveCol)
 
-                    # QUEEN Movement  
-                    elif pieceType[1] == "Q":
-                        board = self.queenMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
+                        # ROOK Movement
+                        elif pieceType[1] == "R":
+                            board = self.rookMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
-                    # PAWN Movement & Promotion
-                    elif pieceType[1] == "P":
-                        board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
-                        
-                    self.dataset.append((board, result))        #store board state
-                    self.cudaDataset.append((board.cuda(), result))     #store gpu form
+                        # QUEEN Movement  
+                        elif pieceType[1] == "Q":
+                            board = self.queenMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
-                    # TESTING: print resulting board state:
-                    # self.displayBoard(board)
+                        # PAWN Movement & Promotion
+                        elif pieceType[1] == "P":
+                            board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
+                            
+                        self.dataset.append((board, result))        #store board state
+                        #self.cudaDataset.append((board.cuda(), result))     #store gpu form
+
+                        # TESTING: print resulting board state:
+                        # self.displayBoard(board)
+
+        except:
+            print("oopsies")
 
     def __getitem__(self, index):
         return self.dataset[index]

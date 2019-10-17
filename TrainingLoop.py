@@ -16,13 +16,13 @@ import time
     # loading in network and data
 
     # Creates new network
-with open('D:\Machine Learning\DeepLearningChessAI\cudaTest.cnn', 'rb') as file:
+#with open('D:\Machine Learning\DeepLearningChessAI\cudaTest.cnn', 'wb') as file:
     #pickle.dump(CNN.CNN().cuda(), file)
-    network = pickle.load(file)
+    #network = pickle.load(file)
 
-#with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
-#    network = pickle.load(file)
-#    network.cuda()
+with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
+    network = pickle.load(file)
+    network.cuda()
 
 with open(r'D:\Machine Learning\DeepLearningChessAI\small_train_set.db', 'rb') as file:
     train_set = pickle.load(file)

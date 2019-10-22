@@ -45,7 +45,8 @@ class Node:
                     for move in self.bishopMoves(self.boardState, coordinates):
                         self.children.add(Node(move))
                 elif channel % 6 == 4:
-                    knightMoves(boardState, coordinates)
+                    for move in self.knightMoves(self.boardState, coordinates):
+                        self.children.add(Node(move))
                 elif channel % 6 == 5:
                     pawnMoves(boardState, coordinates)
                 else:
@@ -152,8 +153,226 @@ class Node:
 
         return moves
 
-    def queenMoves(self, boardState, coordinates):
-        return None
+    def queenMoves(self, boardState, coordinates):          #contains duplicate code for linear and diagonal moves - consider branching both into smaller functions to help rook and queen moves
+        moves = list()
+        originalBoard = copy.deepcopy(boardState)
+        notCapture = True
+
+        # upwards file
+        for row in range(coordinates[0] - 1, -1, -1):
+            if torch.max(boardState[self.colorChannels[:], row, coordinates[1]]) == 0 and notCapture:        # if no same color pieces in way and did not previously capture a piece
+
+                # check to see if capturing an opponent's piece
+                if torch.max(boardState[0:12, row, coordinates[1]]) == 1:
+                    notCapture = False
+
+                # move the queen
+                boardState[:, coordinates[0], coordinates[1]] = 0
+                boardState[:, row, coordinates[1]] = 0
+                boardState[self.colorChannels[1], row, coordinates[1]] = 1
+
+                if not self.inCheck(boardState):
+                    # add possible move to list
+                    moves.append(boardState)
+                
+                # reset board
+                boardState = originalBoard
+            else:
+                notCapture = True
+                break
+        
+        # downwards file
+        for row in range(coordinates[0] + 1, 8):
+            if torch.max(boardState[self.colorChannels[:], row, coordinates[1]]) == 0 and notCapture:        # if no pieces in way and did not previously capture a piece
+
+                # check to see if capturing an opponent's piece
+                if torch.max(boardState[0:12, row, coordinates[1]]) == 1:
+                    notCapture = False
+
+                # move the rook
+                boardState[:, coordinates[0], coordinates[1]] = 0
+                boardState[:, row, coordinates[1]] = 0
+                boardState[self.colorChannels[1], row, coordinates[1]] = 1
+
+                if not self.inCheck(boardState):
+                    # add possible move to list
+                    moves.append(boardState)
+                
+                # reset board
+                boardState = originalBoard
+            else:
+                notCapture = True
+                break
+        
+        # left rank
+        for col in range(coordinates[1] - 1, -1, -1):
+            if torch.max(boardState[self.colorChannels[:], coordinates[0], col]) == 0 and notCapture:        # if no pieces in way and did not previously capture a piece
+
+                # check to see if capturing an opponent's piece
+                if torch.max(boardState[0:12, coordinates[0], col]) == 1:
+                    notCapture = False
+
+                # move the rook
+                boardState[:, coordinates[0], coordinates[1]] = 0
+                boardState[:, coordinates[0], col] = 0
+                boardState[self.colorChannels[1], coordinates[0], col] = 1
+
+                if not self.inCheck(boardState):
+                    # add possible move to list
+                    moves.append(boardState)
+                
+                # reset board
+                boardState = originalBoard
+            else:
+                notCapture = True
+                break
+
+        # right rank
+        for col in range(coordinates[1] + 1, 8):
+            if torch.max(boardState[self.colorChannels[:], coordinates[0], col]) == 0 and notCapture:        # if no pieces in way and did not previously capture a piece
+
+                # check to see if capturing an opponent's piece
+                if torch.max(boardState[0:12, coordinates[0], col]) == 1:
+                    notCapture = False
+
+                # move the rook
+                boardState[:, coordinates[0], coordinates[1]] = 0
+                boardState[:, coordinates[0], col] = 0
+                boardState[self.colorChannels[1], coordinates[0], col] = 1
+
+                if not self.inCheck(boardState):
+                    # add possible move to list
+                    moves.append(boardState)
+                
+                # reset board
+                boardState = originalBoard
+            else:
+                notCapture = True
+                break
+
+        # establish edge proximity
+        left = coordinates[1] - 1           # minus one because we start search in front of bish's square
+        right = 6 - coordinates[1]
+        top = coordinates[0] - 1
+        bottom = 6 - coordinates[0]
+
+            # upward left
+        distance = top
+        if left < top:
+            distance = left
+
+        if distance > -1:
+            for x in range(1, distance + 1):
+
+                if torch.max(boardState[self.colorChannels[:], coordinates[0] - x, coordinates[1] - x]) == 0 and notCapture:        # if no same color pieces in way and did not previously capture a piece
+
+                    # check to see if capturing an opponent's piece
+                    if torch.max(boardState[0:12, coordinates[0] - x, coordinates[1] - x]) == 1:
+                        notCapture = False
+
+                    # move the bish
+                    boardState[:, coordinates[0], coordinates[1]] = 0
+                    boardState[:, coordinates[0] - x, coordinates[1] - x] = 0
+                    boardState[self.colorChannels[1], coordinates[0] - x, coordinates[1] - x] = 1
+
+                    if not self.inCheck(boardState):
+                        # add possible move to list
+                        moves.append(boardState)
+                    
+                    # reset board
+                    boardState = originalBoard
+                else:
+                    notCapture = True
+                    break
+
+            # upward right
+        distance = top
+        if right < top:
+            distance = right
+
+        if distance > -1:
+            for x in range(1, distance + 1):
+
+                if torch.max(boardState[self.colorChannels[:], coordinates[0] - x, coordinates[1] + x]) == 0 and notCapture:        # if no same color pieces in way and did not previously capture a piece
+
+                    # check to see if capturing an opponent's piece
+                    if torch.max(boardState[0:12, coordinates[0] - x, coordinates[1] + x]) == 1:
+                        notCapture = False
+
+                    # move the bish
+                    boardState[:, coordinates[0], coordinates[1]] = 0
+                    boardState[:, coordinates[0] - x, coordinates[1] + x] = 0
+                    boardState[self.colorChannels[1], coordinates[0] - x, coordinates[1] + x] = 1
+
+                    if not self.inCheck(boardState):
+                        # add possible move to list
+                        moves.append(boardState)
+                    
+                    # reset board
+                    boardState = originalBoard
+                else:
+                    notCapture = True
+                    break
+
+            # downward left
+        distance = bottom
+        if left < bottom:
+            distance = left
+
+        if distance > -1:
+            for x in range(1, distance + 1):
+
+                if torch.max(boardState[self.colorChannels[:], coordinates[0] + x, coordinates[1] - x]) == 0 and notCapture:        # if no same color pieces in way and did not previously capture a piece
+
+                    # check to see if capturing an opponent's piece
+                    if torch.max(boardState[0:12, coordinates[0] + x, coordinates[1] - x]) == 1:
+                        notCapture = False
+
+                    # move the bish
+                    boardState[:, coordinates[0], coordinates[1]] = 0
+                    boardState[:, coordinates[0] + x, coordinates[1] - x] = 0
+                    boardState[self.colorChannels[1], coordinates[0] + x, coordinates[1] - x] = 1
+
+                    if not self.inCheck(boardState):
+                        # add possible move to list
+                        moves.append(boardState)
+                    
+                    # reset board
+                    boardState = originalBoard
+                else:
+                    notCapture = True
+                    break
+
+            # downward right
+        distance = bottom
+        if right < bottom:
+            distance = right
+
+        if distance > -1:
+            for x in range(1, distance + 1):
+
+                if torch.max(boardState[self.colorChannels[:], coordinates[0] + x, coordinates[1] + x]) == 0 and notCapture:        # if no same color pieces in way and did not previously capture a piece
+
+                    # check to see if capturing an opponent's piece
+                    if torch.max(boardState[0:12, coordinates[0] + x, coordinates[1] + x]) == 1:
+                        notCapture = False
+
+                    # move the bish
+                    boardState[:, coordinates[0], coordinates[1]] = 0
+                    boardState[:, coordinates[0] + x, coordinates[1] + x] = 0
+                    boardState[self.colorChannels[1], coordinates[0] + x, coordinates[1] + x] = 1
+
+                    if not self.inCheck(boardState):
+                        # add possible move to list
+                        moves.append(boardState)
+                    
+                    # reset board
+                    boardState = originalBoard
+                else:
+                    notCapture = True
+                    break
+
+        return moves
 
     def rookMoves(self, boardState, coordinates):
         moves = list()
@@ -253,7 +472,6 @@ class Node:
                 break
 
         return moves
-
 
     def bishopMoves(self, boardState, coordinates):
         moves = list()
@@ -385,10 +603,104 @@ class Node:
         return moves
 
     def knightMoves(self, boardState, coordinates):
-        return None
+        moves = list()
+        originalBoard = copy.deepcopy(boardState)
+
+        for x in [-2,2]:
+            for y in [-1,1]:
+                if coordinates[0] + x >= 0 and coordinates[0] + x <= 7 and coordinates[1] + y >= 0 and coordinates[1] + y <= 7:
+                    # check to ensure own color piece not in way
+                    if torch.max(boardState[self.colorChannels, coordinates[0] + x, coordinates[1] + y]) == 0:
+                        # remove knight from square
+                        boardState[self.colorChannels[3], coordinates[0], coordinates[1]] = 0
+                        # clear square to be moved onto
+                        boardState[0:12, coordinates[0] + x, coordinates[1] + y] = 0
+                        # place knight
+                        boardState[self.colorChannels[3], coordinates[0] + x, coordinates[1] + y] = 1
+
+                        # make sure legal move
+                        if not self.inCheck(boardState):
+                            # add possible move to list
+                            moves.append(boardState)
+
+                    # refresh boardState
+                    boardState = originalBoard
+
+        for y in [-2,2]:
+            for x in [-1,1]:
+                if coordinates[0] + x >= 0 and coordinates[0] + x <= 7 and coordinates[1] + y >= 0 and coordinates[1] + y <= 7:
+                    # check to ensure own color piece not in way
+                    if torch.max(boardState[self.colorChannels, coordinates[0] + x, coordinates[1] + y]) == 0:
+                        # remove knight from square
+                        boardState[self.colorChannels[3], coordinates[0], coordinates[1]] = 0
+                        # clear square to be moved onto
+                        boardState[0:12, coordinates[0] + x, coordinates[1] + y] = 0
+                        # place knight
+                        boardState[self.colorChannels[3], coordinates[0] + x, coordinates[1] + y] = 1
+
+                        # make sure legal move
+                        if not self.inCheck(boardState):
+                            # add possible move to list
+                            moves.append(boardState)
+
+                    # refresh boardState
+                    boardState = originalBoard
 
     def pawnMoves(self, boardState, coordinates):
-        return None
+        moves = list()
+        originalBoard = copy.deepcopy(boardState)
+
+        # determine direction
+        direction = 1
+            if self.color == "White":
+                direction = -1
+
+        # forward move, 1 space
+        if torch.max(boardState[:, coordinates[0] + direction, coordinates[1]]) == 0:        # if no pieces in way 
+
+            # move the pawn
+            boardState[self.colorChannels[4], coordinates[0], coordinates[1]] = 0
+            boardState[self.colorChannels[4], coordinates[0] + direction, coordinates[1]] = 1
+
+            if not self.inCheck(boardState):
+                # add possible move to list
+                moves.append(boardState)
+            
+            # reset board
+            boardState = originalBoard
+
+        # forward move, 2 spaces
+            if coordinates[0] == (3.5 - 2.5*direction) and torch.max(boardState[:, coordinates[0] + direction*2, coordinates[1]]) == 0:        # if no pieces in way and pawn's first move
+
+                # move the pawn
+                boardState[self.colorChannels[4], coordinates[0], coordinates[1]] = 0
+                boardState[self.colorChannels[4], coordinates[0] + direction*2, coordinates[1]] = 1
+
+                if not self.inCheck(boardState):
+                    # add possible move to list
+                    moves.append(boardState)
+                
+                # reset board
+                boardState = originalBoard
+
+        # captures
+    #add in boundary checks...
+            if torch.max(boardState[self.oppColorChannels[:], coordinates[0] + direction, coordinates[1] - 1]) == 0:        # if no pieces in way 
+
+                # move the pawn
+                boardState[self.colorChannels[4], coordinates[0], coordinates[1]] = 0
+                boardState[self.colorChannels[4], coordinates[0] + direction, coordinates[1]] = 1
+
+                if not self.inCheck(boardState):
+                    # add possible move to list
+                    moves.append(boardState)
+                
+                # reset board
+                boardState = originalBoard
+
+        # promotions
+
+        return moves
 
     def inCheck(self, boardState):
         check = False
@@ -574,4 +886,7 @@ print(node.getChildren())
 
 
 
-# thought: might want a history class to track boardstate metadata during game / tree navigation (ie. rightRookCastle and leftRookCastle boolean flags)
+# thought: might want a history class to track boardstate metadata during game / tree navigation (ie. rightRookCastle and leftRookCastle boolean flags & en passant)
+# break out linear & diag movement into own functions to reduce duplicate code
+# expand inCheck method function to check if ANY given square is under attack
+# fix pass by reference issue with more deepcopies

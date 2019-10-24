@@ -29,6 +29,10 @@ class Node:
             # find piece locations
             locations = torch.nonzero(self.boardState[channel, :, :])
 
+            #DEBUG
+            if channel % 6 == 3:
+                print(locations)
+
             for coordinates in locations:
 
                 # identify piece and call helper method to generate all legal moves
@@ -53,7 +57,6 @@ class Node:
                         self.children.add(Node(move))
                 else:
                     print(channel)
-
     
     def kingMoves(self, boardState, coordinates):
         moves = list()
@@ -76,6 +79,9 @@ class Node:
 
                         # make sure legal move
                         if not self.inCheck(board):
+                            # change turn
+                            self.changeTurn(board)
+
                             # add possible move to list
                             moves.append(board)
 
@@ -86,7 +92,7 @@ class Node:
         rookLocs = torch.nonzero(board[self.colorChannels[2], :, :])
 
         if self.color == "White":
-            if coordinates[0] == 7 and coordinates[1] == 4 and rookLocs.count([7,0]):  
+            if coordinates[0] == 7 and coordinates[1] == 4: #and rookLocs.count([7,0]):         # MAKE BOOLEAN FLAG FOR HISTORY
                 if torch.max(boardState[0:12, 7, 1:4]) < 1:           # check to see if interim squares empty, if yes move pieces
                     
                     #TODO: If no enemy threats in king's path****
@@ -98,12 +104,15 @@ class Node:
                     board[2, 7, 3] = 1
 
                     if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
                         # add possible move to list
                         moves.append(board)
 
                     board = copy.deepcopy(boardState)
 
-            if coordinates[0] == 7 and coordinates[1] == 4 and rookLocs.count([7,7]):
+            if coordinates[0] == 7 and coordinates[1] == 4: #and rookLocs.count([7,7]):
                     if torch.max(board[0:12, 7, 5:7]) < 1:           # check to see if interim squares empty, if yes move pieces
 
                         #TODO: If no enemy threats in king's path
@@ -115,10 +124,14 @@ class Node:
                         board[2, 7, 5] = 1
 
                         if not self.inCheck(board):
+
+                            # change turn
+                            self.changeTurn(board)
+
                             # add possible move to list
                             moves.append(board)
         else:
-            if coordinates[0] == 0 and coordinates[1] == 4 and rookLocs.count([0,0]):  
+            if coordinates[0] == 0 and coordinates[1] == 4: #and rookLocs.count([0,0]):  
                 if torch.max(board[0:12, 0, 1:4]) < 1:           # check to see if interim squares empty, if yes move pieces
                     
                     #TODO: If no enemy threats in king's path
@@ -130,12 +143,15 @@ class Node:
                     board[8, 0, 3] = 1
 
                     if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
                         # add possible move to list
                         moves.append(board)
 
                     board = copy.deepcopy(boardState)
 
-            if coordinates[0] == 0 and coordinates[1] == 4 and rookLocs.count([0,7]):
+            if coordinates[0] == 0 and coordinates[1] == 4: #and rookLocs.count([0,7]):
                     if torch.max(board[0:12, 0, 5:7]) < 1:           # check to see if interim squares empty, if yes move pieces
 
                         #TODO: If no enemy threats in king's path
@@ -147,6 +163,9 @@ class Node:
                         board[8, 0, 5] = 1
 
                         if not self.inCheck(board):
+                            # change turn
+                            self.changeTurn(board)
+
                             # add possible move to list
                             moves.append(board)
 
@@ -197,6 +216,9 @@ class Node:
 
                         # make sure legal move
                         if not self.inCheck(board):
+                            # change turn
+                            self.changeTurn(board)
+
                             # add possible move to list
                             moves.append(board)
 
@@ -217,6 +239,9 @@ class Node:
 
                         # make sure legal move
                         if not self.inCheck(board):
+                            # change turn
+                            self.changeTurn(board)
+
                             # add possible move to list
                             moves.append(board)
 
@@ -246,6 +271,9 @@ class Node:
                 board[self.colorChannels[1], coordinates[0] + direction, coordinates[1]] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
 
@@ -257,6 +285,9 @@ class Node:
                 board[self.colorChannels[4], coordinates[0] + direction, coordinates[1]] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
 
@@ -269,6 +300,9 @@ class Node:
                 board[self.colorChannels[5], coordinates[0] + direction, coordinates[1]] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
@@ -283,6 +317,9 @@ class Node:
                 board[self.colorChannels[5], coordinates[0] + direction*2, coordinates[1]] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
@@ -293,6 +330,7 @@ class Node:
             # boundary checks
         if coordinates[1] - 1 > -1:
             if torch.max(board[self.oppColorChannels[:], coordinates[0] + direction, coordinates[1] - 1]) == 1:        # if opp piece to capture
+                print('oy')
 
                 # move the pawn
                 board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
@@ -300,6 +338,9 @@ class Node:
                 board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] - 1] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
@@ -315,6 +356,9 @@ class Node:
                 board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] + 1] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
@@ -346,14 +390,18 @@ class Node:
                 board[channel, row, coordinates[1]] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
                 # reset board
                 board = copy.deepcopy(boardState)
             else:
-                notCapture = True
                 break
+
+            notCapture = True
         
         # downwards file
         for row in range(coordinates[0] + 1, 8):
@@ -369,14 +417,18 @@ class Node:
                 board[channel, row, coordinates[1]] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
                 # reset board
                 board = copy.deepcopy(boardState)
             else:
-                notCapture = True
                 break
+
+            notCapture = True
         
         # left rank
         for col in range(coordinates[1] - 1, -1, -1):
@@ -392,14 +444,18 @@ class Node:
                 board[channel, coordinates[0], col] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
                 # reset board
                 board = copy.deepcopy(boardState)
             else:
-                notCapture = True
                 break
+
+            notCapture = True
 
         # right rank
         for col in range(coordinates[1] + 1, 8):
@@ -415,13 +471,15 @@ class Node:
                 board[channel, coordinates[0], col] = 1
 
                 if not self.inCheck(board):
+                    # change turn
+                    self.changeTurn(board)
+
                     # add possible move to list
                     moves.append(board)
                 
                 # reset board
                 board = copy.deepcopy(boardState)
             else:
-                notCapture = True
                 break
 
         return moves
@@ -432,10 +490,10 @@ class Node:
         notCapture = True
 
         # establish edge proximity
-        left = coordinates[1] - 1           # minus one because we start search in front of piece's square
-        right = 6 - coordinates[1]
-        top = coordinates[0] - 1
-        bottom = 6 - coordinates[0]
+        left = coordinates[1]       
+        right = 7 - coordinates[1]
+        top = coordinates[0]
+        bottom = 7 - coordinates[0]
 
             # upward left
         distance = top
@@ -457,14 +515,18 @@ class Node:
                     board[channel, coordinates[0] - x, coordinates[1] - x] = 1
 
                     if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
                         # add possible move to list
                         moves.append(board)
                     
                     # reset board
                     board = copy.deepcopy(boardState)
                 else:
-                    notCapture = True
                     break
+
+            notCapture = True
 
             # upward right
         distance = top
@@ -486,14 +548,18 @@ class Node:
                     board[channel, coordinates[0] - x, coordinates[1] + x] = 1
 
                     if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
                         # add possible move to list
                         moves.append(board)
                     
                     # reset board
                     board = copy.deepcopy(boardState)
                 else:
-                    notCapture = True
                     break
+
+            notCapture = True
 
             # downward left
         distance = bottom
@@ -515,14 +581,18 @@ class Node:
                     board[channel, coordinates[0] + x, coordinates[1] - x] = 1
 
                     if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
                         # add possible move to list
                         moves.append(board)
                     
                     # reset board
                     board = copy.deepcopy(boardState)
                 else:
-                    notCapture = True
                     break
+
+            notCapture = True
 
             # downward right
         distance = bottom
@@ -544,13 +614,15 @@ class Node:
                     board[channel, coordinates[0] + x, coordinates[1] + x] = 1
 
                     if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
                         # add possible move to list
                         moves.append(board)
                     
                     # reset board
                     board = copy.deepcopy(boardState)
                 else:
-                    notCapture = True
                     break
 
         return moves
@@ -723,6 +795,12 @@ class Node:
         
         return check
 
+    def changeTurn(self, board):
+        if self.color == "White":
+            board[12:14, :, :] = 1
+        else:
+            board[12:14, :, :] = 0
+
     # visibility for testing
     def getChildren(self):
         return self.children
@@ -762,21 +840,31 @@ class Node:
 
         return string
 
+    def getBoard(self):
+        return self.boardState
 
 with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
     val_set = pickle.load(file)
     print(val_set[1][0])
 node = Node(val_set[1][0])
 node.createChildren()
-for child in node.getChildren():
+childNode = node.getChildren().pop()
+print("childNode:")
+print(childNode)
+childNode.createChildren()
+
+for child in childNode.getChildren():
     print(child)
 
 
 
-# thought: might want a history class to track boardstate metadata during game / tree navigation (ie. rightRookCastle and leftRookCastle boolean flags & en passant)
             # break out linear & diag movement into own functions to reduce duplicate code {done}}}
 # expand inCheck method function to check if ANY given square is under attack
             # fix pass by reference issue with more deepcopies {done}}}
-# change whose turn it is
+            # change whose turn it is
             # bug: spontaneous bishop generation {done}}}
             # bug: no knight moves {done}}}
+            # bug: moving a second piece, but same color {done}}}
+# bug: no pawn captures
+# implement rook and king movement flags to help with castling rules / logic
+# implement en passant variable that will hold coordinates of vulnerable square for one turn after double pawn move

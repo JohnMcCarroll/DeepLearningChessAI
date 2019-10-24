@@ -29,10 +29,6 @@ class Node:
             # find piece locations
             locations = torch.nonzero(self.boardState[channel, :, :])
 
-            #DEBUG
-            if channel % 6 == 3:
-                print(locations)
-
             for coordinates in locations:
 
                 # identify piece and call helper method to generate all legal moves
@@ -334,7 +330,7 @@ class Node:
 
                 # move the pawn
                 board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
-                board[0:12, coordinates[0] + direction, coordinates[1] - 1] = 1
+                board[0:12, coordinates[0] + direction, coordinates[1] - 1] = 0
                 board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] - 1] = 1
 
                 if not self.inCheck(board):
@@ -352,7 +348,7 @@ class Node:
 
                 # move the pawn
                 board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
-                board[0:12, coordinates[0] + direction, coordinates[1] + 1] = 1
+                board[0:12, coordinates[0] + direction, coordinates[1] + 1] = 0
                 board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] + 1] = 1
 
                 if not self.inCheck(board):
@@ -845,15 +841,29 @@ class Node:
 
 with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
     val_set = pickle.load(file)
-    print(val_set[1][0])
-node = Node(val_set[1][0])
-node.createChildren()
-childNode = node.getChildren().pop()
-print("childNode:")
-print(childNode)
-childNode.createChildren()
+    #print(val_set[1][0])
 
-for child in childNode.getChildren():
+testBoard = val_set[1][0]
+
+# move white pawn to be in capture range from black pawns
+testBoard[0:12, 5, 3] = 0
+testBoard[5, 4, 3] = 1
+#testBoard[0:12, 3, 2] = 0
+#testBoard[11, 4, 3] = 1
+
+#testBoard[12:14, :, :] = 0
+
+print(testBoard)
+
+node = Node(testBoard)
+
+node.createChildren()
+#childNode = node.getChildren().pop()
+#print("childNode:")
+print(node)
+#childNode.createChildren()
+
+for child in node.getChildren():
     print(child)
 
 
@@ -865,6 +875,8 @@ for child in childNode.getChildren():
             # bug: spontaneous bishop generation {done}}}
             # bug: no knight moves {done}}}
             # bug: moving a second piece, but same color {done}}}
-# bug: no pawn captures
+            # bug: no pawn captures? {done}}}
 # implement rook and king movement flags to help with castling rules / logic
 # implement en passant variable that will hold coordinates of vulnerable square for one turn after double pawn move
+
+# test: pawn promotion, castling, en passant, isolated piece moves? 

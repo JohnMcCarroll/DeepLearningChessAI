@@ -4,11 +4,19 @@ import copy
 
 
 class Node:
-    def __init__(self, boardState):
+    def __init__(self, boardState, WKC=True, WQC=True, BKC=True, BQC=True, enPassant=[]):
         self.boardState = boardState            # the position of the pieces
         self.color = ""                         # the color to move
-        self.colorChannels = list()
-        self.oppColorChannels = list()
+
+        self.colorChannels = list()             # set of channels that house own color pieces
+        self.oppColorChannels = list()          # set of channels that house opponent's color pieces
+
+        self.enPassant = list()                 # the coordinates to an opponent's vulnerable
+        self.WKC=WKC                            # White Kingside Castle available
+        self.WQC=WQC                            # White Queenside Castle available
+        self.BKC=BKC                            # Black Kingside Castle available
+        self.BQC=BQC                            # Black Queenside Castle available
+
         self.children = set()                   # the set of all possible board states after next move
 
         # determine which color's turn
@@ -34,8 +42,8 @@ class Node:
                 # identify piece and call helper method to generate all legal moves
 
                 if channel % 6 == 0:
-                    for move in self.kingMoves(self.boardState, coordinates):       #moves added to children set?
-                        self.children.add(Node(move))
+                    for move in self.kingMoves(self.boardState, coordinates):
+                        self.children.add(Node(move))                   # add logic to handle when move tuple
                 elif channel % 6 == 1:
                     for move in self.queenMoves(self.boardState, coordinates):
                         self.children.add(Node(move))
@@ -57,6 +65,7 @@ class Node:
     def kingMoves(self, boardState, coordinates):
         moves = list()
         board = copy.deepcopy(boardState)
+        castlingInfo = self.color[0] + "C"
 
         # piece movement
         for row in [-1, 0, 1]:
@@ -79,7 +88,7 @@ class Node:
                             self.changeTurn(board)
 
                             # add possible move to list
-                            moves.append(board)
+                            moves.append((board, castlingInfo))
 
                     # refresh boardState
                     board = copy.deepcopy(boardState)
@@ -89,9 +98,7 @@ class Node:
 
         if self.color == "White":
             if coordinates[0] == 7 and coordinates[1] == 4: #and rookLocs.count([7,0]):         # MAKE BOOLEAN FLAG FOR HISTORY
-                if torch.max(boardState[0:12, 7, 1:4]) < 1:           # check to see if interim squares empty, if yes move pieces
-                    
-                    #TODO: If no enemy threats in king's path****
+                if torch.max(board[0:12, 7, 1:4]) < 1 and not self.inCheck(board, [7, 3]) and not self.inCheck(board, [7, 2]):           # check to see if interim squares empty and not under threat, if yes move piece
 
                     board[0, :, :] = 0
                     board[2, 7, 0] = 0
@@ -104,14 +111,12 @@ class Node:
                         self.changeTurn(board)
 
                         # add possible move to list
-                        moves.append(board)
+                        moves.append((board, castlingInfo))
 
                     board = copy.deepcopy(boardState)
 
             if coordinates[0] == 7 and coordinates[1] == 4: #and rookLocs.count([7,7]):
-                    if torch.max(board[0:12, 7, 5:7]) < 1:           # check to see if interim squares empty, if yes move pieces
-
-                        #TODO: If no enemy threats in king's path
+                    if torch.max(board[0:12, 7, 5:7]) < 1 and not self.inCheck(board, [7, 5]) and not self.inCheck(board, [7, 6]):           # check to see if interim squares empty, if yes move pieces
 
                         board[0, :, :] = 0
                         board[2, 7, 7] = 0
@@ -125,12 +130,10 @@ class Node:
                             self.changeTurn(board)
 
                             # add possible move to list
-                            moves.append(board)
+                            moves.append((board, castlingInfo))
         else:
             if coordinates[0] == 0 and coordinates[1] == 4: #and rookLocs.count([0,0]):  
-                if torch.max(board[0:12, 0, 1:4]) < 1:           # check to see if interim squares empty, if yes move pieces
-                    
-                    #TODO: If no enemy threats in king's path
+                if torch.max(board[0:12, 0, 1:4]) < 1 and not self.inCheck(board, [0, 3]) and not self.inCheck(board, [0, 2]):           # check to see if interim squares empty, if yes move pieces
 
                     board[6, :, :] = 0
                     board[8, 0, 0] = 0
@@ -143,14 +146,12 @@ class Node:
                         self.changeTurn(board)
 
                         # add possible move to list
-                        moves.append(board)
+                        moves.append((board, castlingInfo))
 
                     board = copy.deepcopy(boardState)
 
             if coordinates[0] == 0 and coordinates[1] == 4: #and rookLocs.count([0,7]):
-                    if torch.max(board[0:12, 0, 5:7]) < 1:           # check to see if interim squares empty, if yes move pieces
-
-                        #TODO: If no enemy threats in king's path
+                    if torch.max(board[0:12, 0, 5:7]) < 1 and not self.inCheck(board, [0, 5]) and not self.inCheck(board, [0, 6]):           # check to see if interim squares empty, if yes move pieces
 
                         board[6, :, :] = 0
                         board[8, 0, 7] = 0
@@ -163,7 +164,7 @@ class Node:
                             self.changeTurn(board)
 
                             # add possible move to list
-                            moves.append(board)
+                            moves.append((board, castlingInfo))
 
         return moves
 
@@ -326,7 +327,6 @@ class Node:
             # boundary checks
         if coordinates[1] - 1 > -1:
             if torch.max(board[self.oppColorChannels[:], coordinates[0] + direction, coordinates[1] - 1]) == 1:        # if opp piece to capture
-                print('oy')
 
                 # move the pawn
                 board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
@@ -623,11 +623,12 @@ class Node:
 
         return moves
 
-    def inCheck(self, boardState):
+    def inCheck(self, boardState, coordinates=[-1,-1]):
         check = False
 
-        # get king's coordinates
-        coordinates = torch.nonzero(boardState[self.colorChannels[0], :, :])[0]
+        if coordinates == [-1, -1]:
+            # get king's coordinates if no square specified
+            coordinates = torch.nonzero(boardState[self.colorChannels[0], :, :])[0]
 
         # dummy loop to enable skipping
         for dummy in range(0,1):
@@ -839,6 +840,8 @@ class Node:
     def getBoard(self):
         return self.boardState
 
+
+# TESTING & DEBUGGING
 with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
     val_set = pickle.load(file)
     #print(val_set[1][0])
@@ -846,32 +849,31 @@ with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as 
 testBoard = val_set[1][0]
 
 # move white pawn to be in capture range from black pawns
-testBoard[0:12, 5, 3] = 0
-testBoard[5, 4, 3] = 1
+#testBoard[0:12, 5, 3] = 0
+#testBoard[5, 4, 3] = 1
 #testBoard[0:12, 3, 2] = 0
 #testBoard[11, 4, 3] = 1
 
 #testBoard[12:14, :, :] = 0
 
-print(testBoard)
+#print(testBoard)
 
 node = Node(testBoard)
 
 node.createChildren()
-#childNode = node.getChildren().pop()
+childNode = node.getChildren().pop()
 #print("childNode:")
-print(node)
-#childNode.createChildren()
+#print(len(node.getChildren()))
+childNode.createChildren()
 
-for child in node.getChildren():
+for child in childNode.getChildren():
     print(child)
 
 
-
             # break out linear & diag movement into own functions to reduce duplicate code {done}}}
-# expand inCheck method function to check if ANY given square is under attack
+            # expand inCheck method function to check if ANY given square is under attack {done}}}
             # fix pass by reference issue with more deepcopies {done}}}
-            # change whose turn it is
+            # change whose turn it is {done}}}
             # bug: spontaneous bishop generation {done}}}
             # bug: no knight moves {done}}}
             # bug: moving a second piece, but same color {done}}}

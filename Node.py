@@ -372,6 +372,24 @@ class Node:
         board = copy.deepcopy(boardState)
         notCapture = True
 
+        # set up castlingInfo param
+        unCastle = False
+        castlingInfo = ''
+        if coordinates[0] == 0:
+            if coordinates[1] == 0:
+                castlingInfo = "BQC"
+                unCastle = True
+            elif: coordinates[1] == 7:
+                castlingInfo = "BKC"            # unCastle / castle info used to determine when to pass move tuple
+                unCastle = True
+        elif coordinates[0] == 7:
+            if coordinates[1] == 0:
+                castlingInfo = "WQC"
+                unCastle = True
+            elif: coordinates[1] == 7:
+                castlingInfo = "WKC"
+                unCastle = True
+
         # upwards file
         for row in range(coordinates[0] - 1, -1, -1):
             if torch.max(board[self.colorChannels[:], row, coordinates[1]]) == 0 and notCapture:        # if no same color pieces in way and did not previously capture a piece

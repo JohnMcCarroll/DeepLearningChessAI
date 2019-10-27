@@ -4,19 +4,20 @@ import copy
 
 
 class Node:
-    def __init__(self, boardState, WKC=True, WQC=True, BKC=True, BQC=True, enPassant=[]):
+    def __init__(self, boardState, parent=None):
         self.boardState = boardState            # the position of the pieces
         self.color = ""                         # the color to move
 
         self.colorChannels = list()             # set of channels that house own color pieces
         self.oppColorChannels = list()          # set of channels that house opponent's color pieces
 
-        self.enPassant = list()                 # the coordinates to an opponent's vulnerable
-        self.WKC=WKC                            # White Kingside Castle available
-        self.WQC=WQC                            # White Queenside Castle available
-        self.BKC=BKC                            # Black Kingside Castle available
-        self.BQC=BQC                            # Black Queenside Castle available
+        self.enPassant = []                     # the coordinates to an opponent's vulnerable
+        self.WKC=True                           # White Kingside Castle available
+        self.WQC=True                           # White Queenside Castle available
+        self.BKC=True                           # Black Kingside Castle available
+        self.BQC=True                           # Black Queenside Castle available
 
+        self.parent = parent
         self.children = set()                   # the set of all possible board states after next move
 
         # determine which color's turn
@@ -28,6 +29,10 @@ class Node:
             self.color = "Black"
             self.colorChannels = [6, 7, 8, 9, 10, 11]
             self.oppColorChannels = [0, 1, 2, 3, 4, 5]
+
+        # determine historical boolean statuses
+        if parent is not None:
+            self.updateStatus(parent, self.boardState)
 
     def createChildren(self):
         
@@ -43,29 +48,28 @@ class Node:
 
                 if channel % 6 == 0:
                     for move in self.kingMoves(self.boardState, coordinates):
-                        self.children.add(Node(move))                   # add logic to handle when move tuple
+                        self.children.add(Node(move, self))                   
                 elif channel % 6 == 1:
                     for move in self.queenMoves(self.boardState, coordinates):
-                        self.children.add(Node(move))
+                        self.children.add(Node(move, self))
                 elif channel % 6 == 2:
                     for move in self.rookMoves(self.boardState, coordinates):
-                        self.children.add(Node(move))
+                        self.children.add(Node(move, self))
                 elif channel % 6 == 3:
                     for move in self.bishopMoves(self.boardState, coordinates):
-                        self.children.add(Node(move))
+                        self.children.add(Node(move, self))
                 elif channel % 6 == 4:
                     for move in self.knightMoves(self.boardState, coordinates):
-                        self.children.add(Node(move))
+                        self.children.add(Node(move, self))
                 elif channel % 6 == 5:
                     for move in self.pawnMoves(self.boardState, coordinates):
-                        self.children.add(Node(move))
+                        self.children.add(Node(move, self))
                 else:
                     print(channel)
     
     def kingMoves(self, boardState, coordinates):
         moves = list()
         board = copy.deepcopy(boardState)
-        castlingInfo = self.color[0] + "C"
 
         # piece movement
         for row in [-1, 0, 1]:
@@ -88,16 +92,14 @@ class Node:
                             self.changeTurn(board)
 
                             # add possible move to list
-                            moves.append((board, castlingInfo))
+                            moves.append(board)
 
                     # refresh boardState
                     board = copy.deepcopy(boardState)
 
         # castling
-        rookLocs = torch.nonzero(board[self.colorChannels[2], :, :])
-
         if self.color == "White":
-            if coordinates[0] == 7 and coordinates[1] == 4: #and rookLocs.count([7,0]):         # MAKE BOOLEAN FLAG FOR HISTORY
+            if self.WQC:
                 if torch.max(board[0:12, 7, 1:4]) < 1 and not self.inCheck(board, [7, 3]) and not self.inCheck(board, [7, 2]):           # check to see if interim squares empty and not under threat, if yes move piece
 
                     board[0, :, :] = 0
@@ -111,11 +113,11 @@ class Node:
                         self.changeTurn(board)
 
                         # add possible move to list
-                        moves.append((board, castlingInfo))
+                        moves.append(board)
 
                     board = copy.deepcopy(boardState)
 
-            if coordinates[0] == 7 and coordinates[1] == 4: #and rookLocs.count([7,7]):
+            if self.WKC:
                     if torch.max(board[0:12, 7, 5:7]) < 1 and not self.inCheck(board, [7, 5]) and not self.inCheck(board, [7, 6]):           # check to see if interim squares empty, if yes move pieces
 
                         board[0, :, :] = 0
@@ -130,9 +132,9 @@ class Node:
                             self.changeTurn(board)
 
                             # add possible move to list
-                            moves.append((board, castlingInfo))
+                            moves.append(board)
         else:
-            if coordinates[0] == 0 and coordinates[1] == 4: #and rookLocs.count([0,0]):  
+            if self.BQC:
                 if torch.max(board[0:12, 0, 1:4]) < 1 and not self.inCheck(board, [0, 3]) and not self.inCheck(board, [0, 2]):           # check to see if interim squares empty, if yes move pieces
 
                     board[6, :, :] = 0
@@ -146,11 +148,11 @@ class Node:
                         self.changeTurn(board)
 
                         # add possible move to list
-                        moves.append((board, castlingInfo))
+                        moves.append(board)
 
                     board = copy.deepcopy(boardState)
 
-            if coordinates[0] == 0 and coordinates[1] == 4: #and rookLocs.count([0,7]):
+            if self.BKC:
                     if torch.max(board[0:12, 0, 5:7]) < 1 and not self.inCheck(board, [0, 5]) and not self.inCheck(board, [0, 6]):           # check to see if interim squares empty, if yes move pieces
 
                         board[6, :, :] = 0
@@ -164,7 +166,7 @@ class Node:
                             self.changeTurn(board)
 
                             # add possible move to list
-                            moves.append((board, castlingInfo))
+                            moves.append(board)
 
         return moves
 
@@ -361,9 +363,41 @@ class Node:
                 # reset board
                 board = copy.deepcopy(boardState)
 
-        
+        # enPassant Capture
+        if self.enPassant:
+            if coordinates[1] - 1 == self.enPassant[1] and coordinates[0] + direction == self.enPassant[0]:         # if en passant coordinates in attack range
 
-        # TODO: en passant***
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, self.enPassant[0] - direction, self.enPassant[1]] = 0
+                    board[self.colorChannels[5], self.enPassant[0], self.enPassant[1]] = 1
+
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+                    
+                    # reset board
+                    board = copy.deepcopy(boardState)
+
+            if coordinates[1] + 1 == self.enPassant[1] and coordinates[0] + direction == self.enPassant[0]:         # if en passant coordinates in attack range
+
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, self.enPassant[0] - direction, self.enPassant[1]] = 0
+                    board[self.colorChannels[5], self.enPassant[0], self.enPassant[1]] = 1
+
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+                    
+                    # reset board
+                    board = copy.deepcopy(boardState)
 
         return moves
 
@@ -371,24 +405,6 @@ class Node:
         moves = list()
         board = copy.deepcopy(boardState)
         notCapture = True
-
-        # set up castlingInfo param
-        unCastle = False
-        castlingInfo = ''
-        if coordinates[0] == 0:
-            if coordinates[1] == 0:
-                castlingInfo = "BQC"
-                unCastle = True
-            elif: coordinates[1] == 7:
-                castlingInfo = "BKC"            # unCastle / castle info used to determine when to pass move tuple
-                unCastle = True
-        elif coordinates[0] == 7:
-            if coordinates[1] == 0:
-                castlingInfo = "WQC"
-                unCastle = True
-            elif: coordinates[1] == 7:
-                castlingInfo = "WKC"
-                unCastle = True
 
         # upwards file
         for row in range(coordinates[0] - 1, -1, -1):
@@ -816,7 +832,6 @@ class Node:
         else:
             board[12:14, :, :] = 0
 
-    # visibility for testing
     def getChildren(self):
         return self.children
 
@@ -858,6 +873,67 @@ class Node:
     def getBoard(self):
         return self.boardState
 
+    def updateStatus(self, parent, board):
+        # copy parent's status
+        parentStat = parent.getStatus()
+        self.WKC = parentStat[0]
+        self.WQC = parentStat[1]
+        self.BKC = parentStat[2]
+        self.BQC = parentStat[3]
+
+        # update status based on last move
+        parentBoard = parent.getBoard()
+
+            # en Passant
+        pawnLocs = torch.nonzero(parentBoard[self.oppColorChannels[5], :, :])
+
+        for coordinates in pawnLocs:
+            if coordinates[0] == 6 and self.color == "Black":
+                if self.boardState[self.oppColorChannels[5], coordinates[0], coordinates[1]] == 0 and self.boardState[self.oppColorChannels[5], coordinates[0] - 2, coordinates[1]] == 0:       #if pawn was moved up two squares
+                    self.enPassant = [coordinates[0] - 1, coordinates[1]]
+                    break
+
+            if coordinates[0] == 1 and self.color == "White":
+                if self.boardState[self.oppColorChannels[5], coordinates[0], coordinates[1]] == 0 and self.boardState[self.oppColorChannels[5], coordinates[0] + 2, coordinates[1]] == 0:
+                    self.enPassant = [coordinates[0] + 1, coordinates[1]]
+                    break
+
+
+            # castling
+        if self.color == "Black":
+            # check if white's castling status changed
+            if self.WKC or self.WQC:
+                if self.boardState[self.oppColorChannels[0], 7, 4] == 0:   #if king moved from starting square
+                    self.WKC = False
+                    self.WQC = False
+
+            if self.WKC:
+                if self.boardState[self.oppColorChannels[2], 7, 7] == 0:   #if kingside rook moved from starting square
+                    self.WKC = False
+
+            if self.WQC:
+                if self.boardState[self.oppColorChannels[2], 7, 0] == 0:   #if queenside rook moved from starting square
+                    self.WQC = False
+
+        else:
+            # check if black's castling status changed
+            if self.BKC or self.BQC:
+                if self.boardState[self.oppColorChannels[0], 0, 4] == 0:   #if king moved from starting square
+                    self.BKC = False
+                    self.BQC = False
+
+            if self.BKC:
+                if self.boardState[self.oppColorChannels[2], 0, 7] == 0:   #if kingside rook moved from starting square
+                    self.BKC = False
+
+            if self.BQC:
+                if self.boardState[self.oppColorChannels[2], 0, 0] == 0:   #if queenside rook moved from starting square
+                    self.BQC = False
+
+
+    def getStatus(self):
+        return (self.WKC, self.WQC, self.BKC, self.BKC)
+
 
 # TESTING & DEBUGGING
 with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
@@ -886,6 +962,8 @@ childNode.createChildren()
 
 for child in childNode.getChildren():
     print(child)
+    print("Status:")
+    print(child.getStatus())
 
 
             # break out linear & diag movement into own functions to reduce duplicate code {done}}}
@@ -896,7 +974,7 @@ for child in childNode.getChildren():
             # bug: no knight moves {done}}}
             # bug: moving a second piece, but same color {done}}}
             # bug: no pawn captures? {done}}}
-# implement rook and king movement flags to help with castling rules / logic
-# implement en passant variable that will hold coordinates of vulnerable square for one turn after double pawn move
+            # implement rook and king movement flags to help with castling rules / logic {done}}}
+            # implement en passant variable that will hold coordinates of vulnerable square for one turn after double pawn move {done}}}
 
 # test: pawn promotion, castling, en passant, isolated piece moves? 

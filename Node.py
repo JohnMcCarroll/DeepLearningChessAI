@@ -74,7 +74,7 @@ class Node:
         # piece movement
         for row in [-1, 0, 1]:
             for col in [-1, 0, 1]:
-                if (row == 0 and col == 0) or coordinates[0] + row < 0 or coordinates[0] + row > 7 or coordinates[1] + col < 0 or coordinates[1] > 7:
+                if (row == 0 and col == 0) or coordinates[0] + row < 0 or coordinates[0] + row > 7 or coordinates[1] + col < 0 or coordinates[1] + col > 7:
                     continue    # skip if checking same spot or out of bounds
                 else:
                     # check to ensure own color piece not in way
@@ -278,6 +278,10 @@ class Node:
 
                 # reset board
                 board = copy.deepcopy(boardState)
+
+
+                # move the pawn
+                board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
 
                 # promote to knight
                 board[self.colorChannels[1], coordinates[0] + direction, coordinates[1]] = 0
@@ -667,9 +671,14 @@ class Node:
         # dummy loop to enable skipping
         for dummy in range(0,1):
             # king
-            if torch.max(boardState[self.oppColorChannels[0], coordinates[0]-1:coordinates[0]+2, coordinates[1]-1:coordinates[1]+2]) == 1:      #check if opp king in radius of king
-                check = True
-                break
+            for row in [-1, 0, 1]:
+                for col in [-1, 0, 1]:
+                    if (row == 0 and col == 0) or coordinates[0] + row < 0 or coordinates[0] + row > 7 or coordinates[1] + col < 0 or coordinates[1] + col > 7:
+                        continue    # skip if checking same spot or out of bounds
+                    else:      
+                        if boardState[self.oppColorChannels[0], coordinates[0] + row, coordinates[1] + col] == 1:          #check if opp king in radius of king
+                            check = True
+                            break
 
             # pawns
             direction = 1
@@ -930,17 +939,16 @@ class Node:
                 if self.boardState[self.oppColorChannels[2], 0, 0] == 0:   #if queenside rook moved from starting square
                     self.BQC = False
 
-
     def getStatus(self):
         return (self.WKC, self.WQC, self.BKC, self.BKC)
 
 
 # TESTING & DEBUGGING
-with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
-    val_set = pickle.load(file)
-    #print(val_set[1][0])
 
-testBoard = val_set[1][0]
+    #with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
+    #    val_set = pickle.load(file)
+
+#testBoard = val_set[1][0]
 
 # move white pawn to be in capture range from black pawns
 #testBoard[0:12, 5, 3] = 0
@@ -952,18 +960,20 @@ testBoard = val_set[1][0]
 
 #print(testBoard)
 
-node = Node(testBoard)
+#node = Node(testBoard)
 
-node.createChildren()
-childNode = node.getChildren().pop()
+#node.createChildren()
+#childNode = node.getChildren().pop()
 #print("childNode:")
 #print(len(node.getChildren()))
-childNode.createChildren()
+#childNode.createChildren()
 
-for child in childNode.getChildren():
-    print(child)
-    print("Status:")
-    print(child.getStatus())
+#for child in childNode.getChildren():
+#    print(child)
+#    print("Status:")
+#    print(child.getStatus())
+
+
 
 
             # break out linear & diag movement into own functions to reduce duplicate code {done}}}

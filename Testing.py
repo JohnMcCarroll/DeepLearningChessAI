@@ -1,75 +1,60 @@
 import torch
-import torch.utils.data
-import CNN
-import pickle
-import TrainingData as data
-import os
+import Node
 
-"""
-    fun class to visualize board alongside a network's evaluation of the position - manual testing / confirmation
-"""
 
-def displayBoard(board):
+def promotion():
+    # PAWN PROMOTION TEST
+    board = torch.zeros([14, 8, 8])
+    board[5, 1, 0] = 1
+    board[0, 7, 0] = 1
 
-    # create display
-    display = [['  ','  ','  ','  ','  ','  ','  ','  '], ['  ','  ','  ','  ','  ','  ','  ','  '], ['  ','  ','  ','  ','  ','  ','  ','  '], ['  ','  ','  ','  ','  ','  ','  ','  '], ['  ','  ','  ','  ','  ','  ','  ','  '], ['  ','  ','  ','  ','  ','  ','  ','  '], ['  ','  ','  ','  ','  ','  ','  ','  '], ['  ','  ','  ','  ','  ','  ','  ','  ']]
+    node = Node.Node(board)
+    node.WKC = False
+    node.WQC = False
 
-    # set up piece representations
-    pieces = dict([ (0, "K+"), (1, "Q+"), (2, "R+"), (3, "B+"), (4, "N+"), (5, "P+"), (6, "K-"), (7, "Q-"), (8, "R-"), (9, "B-"), (10, "N-"), (11, "P-") ])
+    print("PARENT:")
+    print(node)
 
-    # transcribe board tensor
-    for channel in range(0,12):
-        for x in range(0,8):
-            for y in range(0,8):
-                if board[0][channel][y][x] == 1:
-                    display[y][x] = pieces[channel]
+    print("CHILDREN:")
+    node.createChildren()
+    children = node.getChildren()
+    for child in children:
+        print(child)
 
-    print('')
-    if board[0][13][0][0] == 1:
-        print("Black to move")
-    else:
-        print("White to move")
-    print('')
-    
-    print('8', end='  ')
-    print(display[0])
-    print('7', end='  ')
-    print(display[1])
-    print('6', end='  ')
-    print(display[2])
-    print('5', end='  ')
-    print(display[3])
-    print('4', end='  ')
-    print(display[4])
-    print('3', end='  ')
-    print(display[5])
-    print('2', end='  ')
-    print(display[6])
-    print('1', end='  ')
-    print(display[7])
-    print('')
-    print(' ', end='  ')
-    print(['a ', 'b ', 'c ', 'd ', 'e ', 'f ', 'g ', 'h '])
-    print('')
+def enPassant():
+    board = torch.zeros([14, 8, 8])
+    board[5, 6, 0] = 1
+    board[11, 4, 1] = 1
 
-with open('D:\Machine Learning\DeepLearningChessAI\DatasetTest.db', 'rb') as file:
-    train_set = pickle.load(file)
+    board[0, 7, 7] = 1
+    board[6, 5, 7] = 1
 
-with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee1.cnn', 'rb') as file:
-    network = pickle.load(file)
+    print("initial:")
+    node = Node.Node(board)
+    node.WKC = False
+    node.WQC = False
+    node.BKC = False
+    node.BQC = False
+    node.createChildren()
 
-train_set, validation_set, dummy_set = torch.utils.data.random_split(train_set, [166000, 18000, 72])
-train_loader = torch.utils.data.DataLoader(train_set, 1, shuffle=True)
+    children = node.getChildren()
+    print(node)
 
-for batch in train_loader:
+    line = 0
+    for child in children:
+        line += 1
+        print("CHILD " + str(line))
+        print(child)
+        child.createChildren()
+        more = child.getChildren()
 
-    board, result = batch
-    displayBoard(board)
+        for child2 in more:
+            print(child2)
 
-    pred = network(board)
-    print('Evaluation:')
-    print(pred)
+enPassant()
 
-    os.system("pause")
-
-# fun class to visualize board alongside a network's evaluation of the position - manual testing / confirmation
+# BUGS:
+#
+# spontaneous castling (w/ rook generation)                 [testing constraint?]
+# pawn promote to knight -> pawn does not disapear          [fixed]
+# no en passant :(

@@ -18,7 +18,7 @@ class Node:
         self.BQC=True                           # Black Queenside Castle available
 
         self.parent = parent
-        self.children = set()                   # the set of all possible board states after next move
+        self.children = list()                   # the set of all possible board states after next move
 
         # determine which color's turn
         if self.boardState[13, 0, 0] == 0:
@@ -48,22 +48,22 @@ class Node:
 
                 if channel % 6 == 0:
                     for move in self.kingMoves(self.boardState, coordinates):
-                        self.children.add(Node(move, self))                   
+                        self.children.append(Node(move, self))                   
                 elif channel % 6 == 1:
                     for move in self.queenMoves(self.boardState, coordinates):
-                        self.children.add(Node(move, self))
+                        self.children.append(Node(move, self))
                 elif channel % 6 == 2:
                     for move in self.rookMoves(self.boardState, coordinates):
-                        self.children.add(Node(move, self))
+                        self.children.append(Node(move, self))
                 elif channel % 6 == 3:
                     for move in self.bishopMoves(self.boardState, coordinates):
-                        self.children.add(Node(move, self))
+                        self.children.append(Node(move, self))
                 elif channel % 6 == 4:
                     for move in self.knightMoves(self.boardState, coordinates):
-                        self.children.add(Node(move, self))
+                        self.children.append(Node(move, self))
                 elif channel % 6 == 5:
                     for move in self.pawnMoves(self.boardState, coordinates):
-                        self.children.add(Node(move, self))
+                        self.children.append(Node(move, self))
                 else:
                     print(channel)
     
@@ -334,38 +334,109 @@ class Node:
         if coordinates[1] - 1 > -1:
             if torch.max(board[self.oppColorChannels[:], coordinates[0] + direction, coordinates[1] - 1]) == 1:        # if opp piece to capture
 
-                # move the pawn
-                board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
-                board[0:12, coordinates[0] + direction, coordinates[1] - 1] = 0
-                board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] - 1] = 1
+                # promotion
+                if coordinates[0] + direction == 0 or coordinates[0] + direction == 7:
 
-                if not self.inCheck(board):
-                    # change turn
-                    self.changeTurn(board)
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, coordinates[0] + direction, coordinates[1] - 1] = 0
+                    board[self.colorChannels[1], coordinates[0] + direction, coordinates[1] - 1] = 1        # promote to queen
 
-                    # add possible move to list
-                    moves.append(board)
-                
-                # reset board
-                board = copy.deepcopy(boardState)
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+
+                    # reset board
+                    board = copy.deepcopy(boardState)
+
+
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, coordinates[0] + direction, coordinates[1] - 1] = 0
+                    board[self.colorChannels[4], coordinates[0] + direction, coordinates[1] - 1] = 1        # promote to knight
+
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+
+                    # reset board
+                    board = copy.deepcopy(boardState)
+
+                else:
+                    
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, coordinates[0] + direction, coordinates[1] - 1] = 0
+                    board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] - 1] = 1
+
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+                    
+                    # reset board
+                    board = copy.deepcopy(boardState)
 
         if coordinates[1] + 1 < 8:
             if torch.max(board[self.oppColorChannels[:], coordinates[0] + direction, coordinates[1] + 1]) == 1:        # if opp piece to capture
 
-                # move the pawn
-                board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
-                board[0:12, coordinates[0] + direction, coordinates[1] + 1] = 0
-                board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] + 1] = 1
+                # promotion
+                if coordinates[0] + direction == 0 or coordinates[0] + direction == 7:
 
-                if not self.inCheck(board):
-                    # change turn
-                    self.changeTurn(board)
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, coordinates[0] + direction, coordinates[1] + 1] = 0
+                    board[self.colorChannels[1], coordinates[0] + direction, coordinates[1] + 1] = 1        # promote to queen
 
-                    # add possible move to list
-                    moves.append(board)
-                
-                # reset board
-                board = copy.deepcopy(boardState)
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+
+                    # reset board
+                    board = copy.deepcopy(boardState)
+
+
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, coordinates[0] + direction, coordinates[1] + 1] = 0
+                    board[self.colorChannels[4], coordinates[0] + direction, coordinates[1] + 1] = 1        # promote to knight
+
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+
+                    # reset board
+                    board = copy.deepcopy(boardState)
+
+                else:
+                    # move the pawn
+                    board[self.colorChannels[5], coordinates[0], coordinates[1]] = 0
+                    board[0:12, coordinates[0] + direction, coordinates[1] + 1] = 0
+                    board[self.colorChannels[5], coordinates[0] + direction, coordinates[1] + 1] = 1
+
+                    if not self.inCheck(board):
+                        # change turn
+                        self.changeTurn(board)
+
+                        # add possible move to list
+                        moves.append(board)
+                    
+                    # reset board
+                    board = copy.deepcopy(boardState)
 
         # enPassant Capture
         if self.enPassant:
@@ -435,7 +506,7 @@ class Node:
             else:
                 break
 
-            notCapture = True
+        notCapture = True
         
         # downwards file
         for row in range(coordinates[0] + 1, 8):
@@ -462,7 +533,7 @@ class Node:
             else:
                 break
 
-            notCapture = True
+        notCapture = True
         
         # left rank
         for col in range(coordinates[1] - 1, -1, -1):
@@ -489,7 +560,7 @@ class Node:
             else:
                 break
 
-            notCapture = True
+        notCapture = True
 
         # right rank
         for col in range(coordinates[1] + 1, 8):
@@ -844,6 +915,9 @@ class Node:
     def getChildren(self):
         return self.children
 
+    def getChild(self, index):
+        return self.children[index]
+
     def __str__(self):
         string = "\n"
 
@@ -898,12 +972,12 @@ class Node:
 
         for coordinates in pawnLocs:
             if coordinates[0] == 6 and self.color == "Black":
-                if self.boardState[self.oppColorChannels[5], coordinates[0], coordinates[1]] == 0 and self.boardState[self.oppColorChannels[5], coordinates[0] - 2, coordinates[1]] == 0:       #if pawn was moved up two squares
+                if self.boardState[self.oppColorChannels[5], coordinates[0], coordinates[1]] == 0 and self.boardState[self.oppColorChannels[5], coordinates[0] - 2, coordinates[1]] == 1:       #if pawn was moved up two squares
                     self.enPassant = [coordinates[0] - 1, coordinates[1]]
                     break
 
             if coordinates[0] == 1 and self.color == "White":
-                if self.boardState[self.oppColorChannels[5], coordinates[0], coordinates[1]] == 0 and self.boardState[self.oppColorChannels[5], coordinates[0] + 2, coordinates[1]] == 0:
+                if self.boardState[self.oppColorChannels[5], coordinates[0], coordinates[1]] == 0 and self.boardState[self.oppColorChannels[5], coordinates[0] + 2, coordinates[1]] == 1:
                     self.enPassant = [coordinates[0] + 1, coordinates[1]]
                     break
 
@@ -987,4 +1061,6 @@ class Node:
             # implement rook and king movement flags to help with castling rules / logic {done}}}
             # implement en passant variable that will hold coordinates of vulnerable square for one turn after double pawn move {done}}}
 
-# test: pawn promotion, castling, en passant, isolated piece moves? 
+            # test: pawn promotion, castling, en passant, isolated piece moves?
+            # capture promotions
+# 3 fold repeat? 30 move draw? -> should those responsibilities lie in Player?... probably b/c involves game states

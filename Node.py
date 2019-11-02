@@ -20,6 +20,8 @@ class Node:
         self.parent = parent
         self.children = list()                   # the set of all possible board states after next move
 
+        #self.value = 0                          # cnn eval of node's boardstate                          
+
         # determine which color's turn
         if self.boardState[13, 0, 0] == 0:
             self.color = "White"

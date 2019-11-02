@@ -3,11 +3,11 @@ import Node
 import CNN
 import copy
 import re
+import pickle
 
 class Player():
     def __init__(self, node, cnn, color, depth=1, breadth=1):
         self.tree = node
-        #self.boardState = node.getBoard()
         self.cnn = cnn
 
         self.color = color
@@ -23,7 +23,7 @@ class Player():
 
     # initializes play loop of making move and accepting opponent move
     def play(self):
-        while isMate(node) == False:
+        while self.isMate(self.tree) == False:
             if self.color == self.turn:
                 self.myTurn(self.tree, self.depth, self.breadth)
                 self.nextTurn()
@@ -37,7 +37,7 @@ class Player():
         tree.createChildren()
         legalMoves = tree.getChildren()
 
-        print("Make your move: select a square and then input an action. Input \"done\" to submit move.)
+        print("Make your move: select a square and then input an action. Input \"done\" to submit move.")
         move = ""
         coordinates = []
         isTurn = True
@@ -97,38 +97,86 @@ class Player():
         children = tree.getChildren()
         tree = children[index]
         print(tree)
-        
-        # branch out the tree one layer
-        # use cnn to evaluate each move
-        #
-        # select top __ prospective moves               breadth first miinimax
-        # for each prospective move:
-        # # branch out all opponent moves and evaluate
-        # # store top __ prospOpp moves
-        # # for each prospOpp:
-        # # # etc...
 
-    def minimax(self, tree, depth, breadth):
-        return None
+    def minimax(self, node, depth, isMaximizer):                   # alpha beta pruning***
+        # if node not created children yet (first traversal)
+        if not node.getChildren():
+            node.createChildren()
+
+        # base condition:  specified depth
+        if depth == 0 or self.isMate(node):
+            return self.cnn(node.getBoard())
+
+        # base condition: stalemate
+        if self.isStalemate(node):
+            return [0.5]
+        
+        if isMaximizer:
+            # get children values and store highest
+            lines = self.getPredictions(node)
+
+            x = 0
+            value = -1
+            # for # of lines specified in breadth
+            while x < self.breadth and len(lines):
+                x += 1
+
+                # find and remove most promising line
+                max = max(lines)
+                index = lines.index(max)
+                lines.remove(max)
+
+                # store highest value of most promising lines
+                value = max(value, minimax(node.getChildren()[index], depth-1, False))   
+                
+            return value
+
+        else:
+            # get children values and store highest
+            lines = self.getPredictions(node)
+
+            x = 0
+            value = 2
+            # for # of lines specified in breadth
+            while x < self.breadth and len(lines):
+                x += 1
+
+                # find and remove most promising line
+                min = min(lines)
+                index = lines.index(min)
+                lines.remove(min)
+
+                # store lowest value of most promising lines
+                value = min(value, minimax(node.getChildren()[index], depth-1, True))
+            
+            return value
+
         # recursively? minimax through the tree breadth first (queue?) to specifed depth/breadth and return the best move
         # be mindful of checkmate, stalemate, 3 fold repeat
 
-    def isMate(self, node):
+    def getPredictions(self, node):             # assumes node already created children
+        # get predictions on each child
+        predictions = list()
+        children = node.getChildren()
+        for child in children:
+            predictions.append(self.cnn(child.getBoard()))
+
+        return predictions
+
+    def isMate(self, node):                     # assumes node already created children
         isMate = False
 
-        node.createChildren()
         children = node.getChildren()
 
         if not children:                        # if leaf node & in check
-            if node.inCheck():
+            if node.inCheck(node.getBoard()):
                 isMate = True
 
         return isMate
 
-    def isStalemate(self):
+    def isStalemate(self, node):                # assumes node already created children
         isStalemate = False
 
-        node.createChildren()
         children = node.getChildren()
 
         if not children:                        # if leaf node & not in check
@@ -146,3 +194,49 @@ class Player():
             self.turn = "Black"
         else:
             self.turn = "White"
+
+
+def initialBoard():
+    # initialize board state tensor
+    board = torch.zeros([14, 8, 8])
+
+    # White King
+    board[0, 7, 4] = 1
+    # White Queen
+    board[1, 7, 3] = 1
+    # White Rooks
+    board[2, 7, 0] = 1
+    board[2, 7, 7] = 1
+    # White Bishops
+    board[3, 7, 2] = 1
+    board[3, 7, 5] = 1
+    # White Knights
+    board[4, 7, 1] = 1
+    board[4, 7, 6] = 1
+    # White Pawns
+    board[5, 6, :] = 1
+    # Black King
+    board[6, 0, 4] = 1
+    # Black Queen
+    board[7, 0, 3] = 1
+    # Black Rooks
+    board[8, 0, 0] = 1
+    board[8, 0, 7] = 1
+    # Black Bishops
+    board[9, 0, 2] = 1
+    board[9, 0, 5] = 1
+    # Black Knights
+    board[10, 0, 1] = 1
+    board[10, 0, 6] = 1
+    # Black Pawns
+    board[11, 1, :] = 1
+
+    return board
+board = initialBoard()
+game = Node.Node(board)
+network = 0
+with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
+    network = pickle.load(file)
+    network.cuda()
+player = Player(game, network, "White")
+player.play()

@@ -37,7 +37,9 @@ class Node:
             self.updateStatus(parent, self.boardState)
 
     def createChildren(self):
-        
+        # clear children
+        self.children = []
+
         # iterate through each square on board seeing if piece of color resides there
 
         for channel in self.colorChannels:

@@ -13,10 +13,14 @@ class Player():
         self.color = color
         self.turn = "White"
         self.opponentColorChannels = list()
+        self.isMaximizer = False
+
         if self.color == "Black":
             self.opponentColorChannels = [0,1,2,3,4,5]
+            self.isMaximizer = False
         else:
             self.opponentColorChannels = [6,7,8,9,10,11]
+            self.isMaximizer = True
 
         self.depth = depth              # might change to "difficulty" param
         self.breadth = breadth
@@ -30,10 +34,15 @@ class Player():
             else:
                 self.opponentTurn(self.tree)
                 self.nextTurn()
+        
+        if self.tree.color == "White":
+            print("Black wins by CheckMate")
+        else:
+            print("White wins by CheckMate")
                 
     # accepts input from user and moves piece        
     def opponentTurn(self, tree):
-        board = copy.deepCopy(tree.getBoard())
+        board = copy.deepcopy(tree.getBoard())
         tree.createChildren()
         legalMoves = tree.getChildren()
 
@@ -45,9 +54,17 @@ class Player():
         while isTurn:
             move = input()              # get user input
             if move == "done":
+                # change turn
+                if self.color == "White":
+                    board[12:14, :, :] = 0
+                else:
+                    board[12:14, :, :] = 1
+                print(Node.Node(board))
+
                 for line in legalMoves:
-                    if line.getBoard() == board:
-                        tree = line                    # change head of tree to match opponent's move
+
+                    if torch.equal(line.getBoard(), board):
+                        self.tree = line                    # change head of tree to match opponent's move
                         isTurn = False
                         print("Move submitted")
                         break
@@ -58,9 +75,10 @@ class Player():
                     break
 
             elif re.search(r'\d', move):          # if has number -> indicates square selection
-                coordinates[0] = ord(move[0]) - 97
-                coordinates[1] = 8 - int(move[1])
-                print("Selected: " + coordinates)
+                coordinates = []
+                coordinates.append(8 - int(move[1]))
+                coordinates.append(ord(move[0]) - 97)
+                print("Selected: " + str(coordinates))
 
             elif move == "clear":
                 if coordinates:
@@ -93,42 +111,45 @@ class Player():
                     print("first, select a square")
                 
     def myTurn(self, tree, depth, breadth):
-        index = self.minimax(tree, depth, breadth)
+        index = self.minimax(tree, 0, depth, self.isMaximizer)
         children = tree.getChildren()
-        tree = children[index]
-        print(tree)
+        self.tree = children[index[0]]                      #minimax return index... orrr?****START HERE
+        print(self.tree)
 
-    def minimax(self, node, depth, isMaximizer):                   # alpha beta pruning***
+    # searches for optimally evaluated move - returns a tuple of (index, value)
+    def minimax(self, node, nodeIndex, depth, isMaximizer):                   # alpha beta pruning***
         # if node not created children yet (first traversal)
         if not node.getChildren():
             node.createChildren()
 
         # base condition:  specified depth
         if depth == 0 or self.isMate(node):
-            return self.cnn(node.getBoard())
+            return (nodeIndex, self.cnn(torch.unsqueeze(node.getBoard(), 0)))
 
         # base condition: stalemate
         if self.isStalemate(node):
-            return [0.5]
+            return (nodeIndex, [0.5])
         
         if isMaximizer:
             # get children values and store highest
             lines = self.getPredictions(node)
 
             x = 0
-            value = -1
+            value = (0, -1)
             # for # of lines specified in breadth
             while x < self.breadth and len(lines):
                 x += 1
 
                 # find and remove most promising line
-                max = max(lines)
-                index = lines.index(max)
-                lines.remove(max)
+                best = max(lines)
+                index = lines.index(best)
+                lines.remove(best)
 
-                # store highest value of most promising lines
-                value = max(value, minimax(node.getChildren()[index], depth-1, False))   
-                
+                # store highest value & index of most promising lines
+                proxy = self.minimax(node.getChildren()[index], index, depth-1, False)
+                if value[1] < proxy[1]:
+                    value = proxy   
+
             return value
 
         else:
@@ -136,22 +157,24 @@ class Player():
             lines = self.getPredictions(node)
 
             x = 0
-            value = 2
+            value = (0, 2)
             # for # of lines specified in breadth
             while x < self.breadth and len(lines):
                 x += 1
 
                 # find and remove most promising line
-                min = min(lines)
-                index = lines.index(min)
-                lines.remove(min)
+                best = min(lines)
+                index = lines.index(best)
+                lines.remove(best)
 
                 # store lowest value of most promising lines
-                value = min(value, minimax(node.getChildren()[index], depth-1, True))
+                # store highest value & index of most promising lines
+                proxy = self.minimax(node.getChildren()[index], index, depth-1, True)
+                if value[1] > proxy[1]:
+                    value = proxy 
             
             return value
 
-        # recursively? minimax through the tree breadth first (queue?) to specifed depth/breadth and return the best move
         # be mindful of checkmate, stalemate, 3 fold repeat
 
     def getPredictions(self, node):             # assumes node already created children
@@ -159,7 +182,7 @@ class Player():
         predictions = list()
         children = node.getChildren()
         for child in children:
-            predictions.append(self.cnn(child.getBoard()))
+            predictions.append(self.cnn(torch.unsqueeze(child.getBoard(), 0)))
 
         return predictions
 
@@ -237,6 +260,10 @@ game = Node.Node(board)
 network = 0
 with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
     network = pickle.load(file)
-    network.cuda()
-player = Player(game, network, "White")
+    #network.cuda()
+player = Player(game, network, "White", 2, 2)
 player.play()
+
+
+### DEBUGGING
+# list index out of range line 116

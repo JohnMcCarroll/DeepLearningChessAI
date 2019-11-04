@@ -111,13 +111,16 @@ class Player():
                     print("first, select a square")
                 
     def myTurn(self, tree, depth, breadth):
-        index = self.minimax(tree, 0, depth, self.isMaximizer)
+        index = self.minimax(tree, depth, self.isMaximizer)
         children = tree.getChildren()
+
+        print(index)
+
         self.tree = children[index[0]]                      #minimax return index... orrr?****START HERE
         print(self.tree)
 
     # searches for optimally evaluated move - returns a tuple of (index, value)
-    def minimax(self, node, nodeIndex, depth, isMaximizer):                   # alpha beta pruning***
+    def minimax(self, node, depth, isMaximizer, nodeIndex=-1):                   # alpha beta pruning***
         # if node not created children yet (first traversal)
         if not node.getChildren():
             node.createChildren()
@@ -146,11 +149,9 @@ class Player():
                 lines.remove(best)
 
                 # store highest value & index of most promising lines
-                proxy = self.minimax(node.getChildren()[index], index, depth-1, False)
+                proxy = self.minimax(node.getChildren()[index], depth-1, False, nodeIndex=index)
                 if value[1] < proxy[1]:
                     value = proxy   
-
-            return value
 
         else:
             # get children values and store highest
@@ -169,11 +170,17 @@ class Player():
 
                 # store lowest value of most promising lines
                 # store highest value & index of most promising lines
-                proxy = self.minimax(node.getChildren()[index], index, depth-1, True)
+                proxy = self.minimax(node.getChildren()[index], depth-1, True, nodeIndex=index)
                 if value[1] > proxy[1]:
                     value = proxy 
-            
-            return value
+        
+        # return own index unless initializing method call
+        if nodeIndex == -1:
+            pass
+        else:
+            value = (nodeIndex, value[1])
+
+        return value
 
         # be mindful of checkmate, stalemate, 3 fold repeat
 
@@ -261,7 +268,7 @@ network = 0
 with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
     network = pickle.load(file)
     #network.cuda()
-player = Player(game, network, "White", 2, 2)
+player = Player(game, network, "White", 3, 3)
 player.play()
 
 

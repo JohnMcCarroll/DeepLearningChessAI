@@ -151,7 +151,7 @@ class Player():
                 # store highest value & index of most promising lines
                 proxy = self.minimax(node.getChildren()[index], depth-1, False, nodeIndex=index)
                 if value[1] < proxy[1]:
-                    value = proxy   
+                    value = proxy
 
         else:
             # get children values and store highest
@@ -172,7 +172,7 @@ class Player():
                 # store highest value & index of most promising lines
                 proxy = self.minimax(node.getChildren()[index], depth-1, True, nodeIndex=index)
                 if value[1] > proxy[1]:
-                    value = proxy 
+                    value = proxy
         
         # return own index unless initializing method call
         if nodeIndex == -1:
@@ -262,10 +262,11 @@ def initialBoard():
     board[11, 1, :] = 1
 
     return board
+
 board = initialBoard()
 game = Node.Node(board)
 network = 0
-with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
+with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file:
     network = pickle.load(file)
     #network.cuda()
 player = Player(game, network, "White", 3, 3)
@@ -273,4 +274,5 @@ player.play()
 
 
 ### DEBUGGING
-# list index out of range line 116
+# list index out of range line 116 {done}}}
+

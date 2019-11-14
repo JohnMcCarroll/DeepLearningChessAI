@@ -16,28 +16,35 @@ import time
     # loading in network and data
 
     # Creates new network
-#with open('D:\Machine Learning\DeepLearningChessAI\cudaTest.cnn', 'wb') as file:
-    #pickle.dump(CNN.CNN().cuda(), file)
-    #network = pickle.load(file)
-
-with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
+with open('D:\\Machine Learning\\DeepLearningChessAI\\Networks\\Statistician.cnn', 'wb') as file:
+    pickle.dump(CNN.CNN().cuda(), file)
     network = pickle.load(file)
     network.cuda()
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\small_train_set.db', 'rb') as file:
+# with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
+#     network = pickle.load(file)
+#     network.cuda()
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
     train_set = pickle.load(file)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\small_test_set.db', 'rb') as file:
-    test_set = pickle.load(file)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
-    val_set = pickle.load(file)
+test_set = train_set[0:1000]
+val_set = train_set[1000:2000]
+train_set = train_set[2001:len(train_set)]
+
+
+# with open(r'D:\Machine Learning\DeepLearningChessAI\val_set2.list', 'rb') as file:
+#     test_set = pickle.load(file)
+
+# with open(r'D:\Machine Learning\DeepLearningChessAI\train_set2.list', 'rb') as file:
+#     val_set = pickle.load(file)
 
 
     # initialize hyperparameters
 batchSize = 1000
 learningRate = 0.0001
-epoch = 10
+epoch = 3
 
     # init optimizer
 optimizer = optim.Adam(network.parameters(), learningRate)
@@ -103,9 +110,6 @@ plt.show()
 
 
 # save network
-#with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'wb') as file:
- #   pickle.dump(network, file)
+with open('D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'wb') as file:
+   pickle.dump(network, file)
 
-
-
-# why do weights "reset" after each epoch?

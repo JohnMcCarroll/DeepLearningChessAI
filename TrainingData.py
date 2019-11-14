@@ -131,13 +131,13 @@ class TrainingData (torch.utils.data.Dataset):
                             board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
                             
                         self.dataset.append((board, result))        #store board state
-                        self.cudaDataset.append((board.cuda(), result))     #store gpu form
+                        #self.cudaDataset.append((board.cuda(), result))     #store gpu form
 
                         # TESTING: print resulting board state:
                         # self.displayBoard(board)
 
-        except:
-            print("oopsies")
+        except Exception as e:
+            print(e)
 
     def __getitem__(self, index):
         return self.dataset[index]
@@ -622,3 +622,10 @@ class TrainingData (torch.utils.data.Dataset):
             self.cudaDataset.append((tensor.cuda(), result))
 
             print(self.cudaDataset)
+
+# import pickle
+
+# db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
+
+# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\fulldataset.db', 'wb') as file:
+#     pickle.dump(db.dataset, file)

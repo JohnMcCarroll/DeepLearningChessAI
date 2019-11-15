@@ -8,8 +8,8 @@ import TrainingData as data
 import pickle
 import CNN
 import matplotlib.pyplot as plt
-
 import time
+
 
 # setup
 
@@ -17,9 +17,8 @@ import time
 
     # Creates new network
 with open('D:\\Machine Learning\\DeepLearningChessAI\\Networks\\Statistician.cnn', 'wb') as file:
-    pickle.dump(CNN.CNN().cuda(), file)
-    network = pickle.load(file)
-    network.cuda()
+    network = CNN.CNN().cuda()
+    pickle.dump(network, file)
 
 # with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file: 
 #     network = pickle.load(file)
@@ -59,6 +58,7 @@ train_losses = list()
 test_loader = torch.utils.data.DataLoader(test_set, 9203)
 test_boards, test_results = next(iter(test_loader))                 #whole test set?***
 test_results = test_results.float().reshape([-1, 1]).cuda()     #switch to gpu
+test_boards = test_boards.cuda()
 test_losses = list()
 
     # setting up validation data
@@ -80,6 +80,7 @@ for epoch in range(epoch):
 
         # converting type & reshaping
         results = results.float().reshape([-1, 1]).cuda()       #switch to gpu
+        boards = boards.cuda()
 
         # calculating loss
         preds = network(boards)
@@ -110,6 +111,6 @@ plt.show()
 
 
 # save network
-with open('D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'wb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'wb') as file:
    pickle.dump(network, file)
 

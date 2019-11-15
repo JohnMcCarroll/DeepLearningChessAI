@@ -266,9 +266,9 @@ def initialBoard():
 board = initialBoard()
 game = Node.Node(board)
 network = 0
-with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee2.cnn', 'rb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'rb') as file:
     network = pickle.load(file)
-    #network.cuda()
+    network = network.cpu()
 player = Player(game, network, "White", 3, 3)
 player.play()
 

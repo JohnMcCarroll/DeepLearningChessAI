@@ -90,16 +90,24 @@ def initialBoard():
 ### data recovery:
 #data = td.TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
+# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
+#     data = pickle.load(file)
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\plz_small.db', 'rb') as file:
     data = pickle.load(file)
 
-
 for datum in data:
-    print(datum[1])
-    print(type(datum[1]))
-    if datum[1] != 0.0 and datum[1] != 0.5 and datum[1] != 1.0:
-        print(datum)
-        input()
+    datum[0].cuda(0)
+    print(datum[0].cuda(0).device)
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\plz_small_cuda.db', 'wb') as file:
+    pickle.dump(data, file)
+
+#     print(datum[1])
+#     print(type(datum[1]))
+#     if datum[1] != 0.0 and datum[1] != 0.5 and datum[1] != 1.0:
+#         print(datum)
+#         input()
 
 # data = probability(data)
 

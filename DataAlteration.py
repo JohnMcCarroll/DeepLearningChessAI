@@ -93,14 +93,26 @@ def initialBoard():
 # with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
 #     data = pickle.load(file)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\plz_small.db', 'rb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
     data = pickle.load(file)
 
-for datum in data:
-    datum[0].cuda(0)
-    print(datum[0].cuda(0).device)
+print(data[0][0].size())
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\plz_small_cuda.db', 'wb') as file:
+total = 0
+numProb = 0
+filtered = []
+
+for datum in data:
+    total += 1
+
+    if datum[1] != 0.0 and datum[1] != 1.0 and datum[1] != 0.5:
+        numProb += 1
+        filtered.append(datum)
+
+print(total)
+print(numProb)
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_filtered.db', 'wb') as file:
     pickle.dump(data, file)
 
 #     print(datum[1])

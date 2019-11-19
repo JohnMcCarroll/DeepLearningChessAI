@@ -59,24 +59,44 @@ class TrainingData (torch.utils.data.Dataset):
                     meetsCriteria = False
                     isStandard = True
                     
-                    # store result of game (1 = white wins, 0 = white loses, 1/2 = draw)
+                    # interpret result of game (all games start at 0.5, and move incrementally towards win or loss)
                     line = re.split(r'\d\[', line)[0]       # cleaning up line
                     fields = line.split(" ")
                     result = fields[-1].split('-')[0]
                     
                     if result == "0":
-                        result = 0.0
+                        direction = -1
                     elif result == "1":
-                        result = 1.0
+                        direction = 1
                     elif result == "1/2":
-                        result = 0.5
+                        direction = 0
+
+                    result = 0.5
+
+
+                    # store the number of moves in the game
+                    for field in reversed(fields):
+                        lastMove = field
+                        if lastMove[-1] == ".":
+                            break
+
+                    initialLength = len(lastMove)
+                    lastMove = lastMove.strip(".")
+                    finalLength = len(lastMove)
+
+                    numMoves = int(lastMove)*2
+
+                    if initialLength - finalLength < 3:
+                        numMoves+= 1
+
+                    increment = 0.5*(direction / numMoves)
 
                     # parse game moves and pair with result
 
                     # get initial board state
                     board = self.initialBoard()
                     self.dataset.append((board, result))        #store first board state
-                    self.cudaDataset.append((board.cuda(), result))     #store in gpu form
+                    #self.cudaDataset.append((board.cuda(), result))     #store in gpu form
 
                     # set prevColor for color determination
                     prevColor = 'B'
@@ -130,11 +150,17 @@ class TrainingData (torch.utils.data.Dataset):
                         elif pieceType[1] == "P":
                             board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
                             
+
+                        # update result
+                        result += increment
+                        
                         self.dataset.append((board, result))        #store board state
                         #self.cudaDataset.append((board.cuda(), result))     #store gpu form
 
-                        # TESTING: print resulting board state:
-                        # self.displayBoard(board)
+                        # #TESTING
+                        # print(board)
+                        # print(result)
+                        # input()
 
         except Exception as e:
             print(e)
@@ -627,5 +653,5 @@ class TrainingData (torch.utils.data.Dataset):
 
 # db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
-# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\fulldataset.db', 'wb') as file:
+# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\ratioDataset.db', 'wb') as file:
 #     pickle.dump(db.dataset, file)

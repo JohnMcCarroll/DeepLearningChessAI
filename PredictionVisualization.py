@@ -3,7 +3,6 @@ import torch.utils.data
 import CNN
 import pickle
 import TrainingData as data
-import os
 
 """
     fun class to visualize board alongside a network's evaluation of the position - manual testing / confirmation
@@ -52,13 +51,13 @@ def displayBoard(board):
     print(['a ', 'b ', 'c ', 'd ', 'e ', 'f ', 'g ', 'h '])
     print('')
 
-with open('D:\Machine Learning\DeepLearningChessAI\DatasetTest.db', 'rb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\ratioDataset.db', 'rb') as file:
     train_set = pickle.load(file)
 
-with open('D:\Machine Learning\DeepLearningChessAI\CNN_yankee1.cnn', 'rb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'rb') as file:
     network = pickle.load(file)
 
-train_set, validation_set, dummy_set = torch.utils.data.random_split(train_set, [166000, 18000, 72])
+#train_set, validation_set, dummy_set = torch.utils.data.random_split(train_set, [166000, 18000, 72])
 train_loader = torch.utils.data.DataLoader(train_set, 1, shuffle=True)
 
 for batch in train_loader:
@@ -66,10 +65,10 @@ for batch in train_loader:
     board, result = batch
     displayBoard(board)
 
-    pred = network(board)
+    pred = network(board.cuda())
     print('Evaluation:')
     print(pred)
 
-    os.system("pause")
+    input()
 
 # fun class to visualize board alongside a network's evaluation of the position - manual testing / confirmation

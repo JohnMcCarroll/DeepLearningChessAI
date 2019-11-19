@@ -4,7 +4,7 @@ import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
 import numpy as np
-import TrainingData as data
+# import TrainingData as data
 import pickle
 import CNN
 import matplotlib.pyplot as plt
@@ -16,7 +16,7 @@ import time
     # loading in network and data
 
     # Creates new network
-with open('D:\\Machine Learning\\DeepLearningChessAI\\Networks\\Statistician.cnn', 'wb') as file:
+with open('D:\\Machine Learning\\DeepLearningChessAI\\Networks\\Skipper5.cnn', 'wb') as file:
     network = CNN.CNN().cuda()
     pickle.dump(network, file)
 
@@ -24,7 +24,7 @@ with open('D:\\Machine Learning\\DeepLearningChessAI\\Networks\\Statistician.cnn
 #     network = pickle.load(file)
 #     network.cuda()
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\ratioDataset.db', 'rb') as file:
     train_set = pickle.load(file)
 
 
@@ -111,6 +111,6 @@ plt.show()
 
 
 # save network
-with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'wb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5.cnn', 'wb') as file:
    pickle.dump(network, file)
 

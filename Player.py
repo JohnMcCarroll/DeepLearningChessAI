@@ -266,10 +266,10 @@ def initialBoard():
 board = initialBoard()
 game = Node.Node(board)
 network = 0
-with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'rb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5.cnn', 'rb') as file:
     network = pickle.load(file)
     network = network.cpu()
-player = Player(game, network, "White", 5, 3)
+player = Player(game, network, "White", 3, 3)
 player.play()
 
 

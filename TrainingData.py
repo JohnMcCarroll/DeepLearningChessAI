@@ -4,6 +4,7 @@ import torch
 import torch.utils.data
 import numpy as np
 import random
+import copy
 
 """
     TrainingData
@@ -32,6 +33,20 @@ class TrainingData (torch.utils.data.Dataset):
             self.channels['BB'] = 9
             self.channels['BN'] = 10
             self.channels['BP'] = 11
+
+            self.probChannels = dict()      # move layer hashtable
+            self.probChannels["N"] = 0
+            self.probChannels["NE"] = 7
+            self.probChannels["E"] = 14
+            self.probChannels["SE"] = 21
+            self.probChannels["S"] = 28
+            self.probChannels["SW"] = 35
+            self.probChannels["W"] = 42
+            self.probChannels["NW"] = 49
+            self.probChannels["knight"] = 56
+            self.probChannels["promotion"] = 64
+            self.probChannels["castling"] = 73
+
 
             # open training data file
             file = open(filePath, 'r', 1, encoding='utf-8')
@@ -73,7 +88,6 @@ class TrainingData (torch.utils.data.Dataset):
 
                     result = 0.5
 
-
                     # store the number of moves in the game
                     for field in reversed(fields):
                         lastMove = field
@@ -95,8 +109,7 @@ class TrainingData (torch.utils.data.Dataset):
 
                     # get initial board state
                     board = self.initialBoard()
-                    self.dataset.append((board, result))        #store first board state
-                    #self.cudaDataset.append((board.cuda(), result))     #store in gpu form
+                    previousBoard = copy.deepcopy(board)
 
                     # set prevColor for color determination
                     prevColor = 'B'
@@ -114,53 +127,54 @@ class TrainingData (torch.utils.data.Dataset):
                             color = "W"
                             board[12:14, :, :] = 1
                     
-                        # store prevField
+                        # store prevColor
                         prevColor = color
 
                         # parse move
-                        moveRow, moveCol, pieceType, pieceLoc, location, promotion = self.parseMove(field, color)
+                        moveRow, moveCol, pieceType, pieceLoc, location, promotion = self.parseMove(field, color)       ###ADD PROB MATRIX TO RETURN
 
                         # Alter board state - make move
 
                         # CASTLE
                         if len(pieceType) > 2 :
-                            board = self.castleMove(board, pieceType, color)
+                            board, probMatrix = self.castleMove(board, pieceType, color)
 
                         # KING movement
                         elif pieceType[1] == "K":
-                            board = self.kingMove(board, pieceType, moveRow, moveCol)
+                            board, probMatrix = self.kingMove(board, pieceType, moveRow, moveCol)
                             
                         # KNIGHT movement
                         elif pieceType[1] == "N":
-                            board = self.knightMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
+                            board, probMatrix = self.knightMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
                         # BISHOP Movement
                         elif pieceType[1] == "B":
-                            board = self.bishopMove(board, pieceType, moveRow, moveCol)
+                            board, probMatrix = self.bishopMove(board, pieceType, moveRow, moveCol)
 
                         # ROOK Movement
                         elif pieceType[1] == "R":
-                            board = self.rookMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
+                            board, probMatrix = self.rookMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
                         # QUEEN Movement  
                         elif pieceType[1] == "Q":
-                            board = self.queenMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
+                            board, probMatrix = self.queenMove(board, pieceType, moveRow, moveCol, pieceLoc, location)
 
                         # PAWN Movement & Promotion
                         elif pieceType[1] == "P":
-                            board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
+                            board, probMatrix = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
                             
+
+                        # store previous board state with result and probabilities
+                        self.dataset.append((previousBoard, result, probMatrix))
+                        
+                        # update previousBoard
+                        previousBoard =  copy.deepcopy(board)
 
                         # update result
                         result += increment
-                        
-                        self.dataset.append((board, result))        #store board state
-                        #self.cudaDataset.append((board.cuda(), result))     #store gpu form
 
-                        # #TESTING
-                        # print(board)
-                        # print(result)
-                        # input()
+                    # store last move with empty probMatrix
+                    self.dataset.append((board, result, self.initialProbMatrix()))
 
         except Exception as e:
             print(e)
@@ -253,6 +267,9 @@ class TrainingData (torch.utils.data.Dataset):
 
         return board
 
+    def initialProbMatrix(self):
+        return torch.zeros([74, 8, 8])
+
     def parseMove(self, field, color):
         # initalize move variables
         moveRow = -1
@@ -335,6 +352,8 @@ class TrainingData (torch.utils.data.Dataset):
         return moveRow, moveCol, pieceType, pieceLoc, location, promotion
                                 
     def castleMove(self, board, pieceType, color):
+        probMatrix = self.initialProbMatrix()
+
         if color == "W":
             moveRow = 7
             kingChannel = 0
@@ -349,14 +368,57 @@ class TrainingData (torch.utils.data.Dataset):
             board[rookChannel, moveRow, 7] = 0
             board[kingChannel, moveRow, 6] = 1
             board[rookChannel, moveRow, 5] = 1
+
+            # set probability
+            probMatrix[self.probChannels["castling"], moveRow, 7] = 1
+
         else:
             board[kingChannel, moveRow, 4] = 0
             board[rookChannel, moveRow, 0] = 0
             board[kingChannel, moveRow, 2] = 1
             board[rookChannel, moveRow, 3] = 1
-        return board
+
+            # set probability
+            probMatrix[self.probChannels["castling"], moveRow, 0] = 1
+
+        return board, probMatrix
 
     def kingMove(self, board, pieceType, moveRow, moveCol):
+        # init prob
+        probMatrix = self.initialProbMatrix()
+
+        # get coordinates
+        coordinates = torch.nonzero(self.board[self.channels[pieceType], :, :])
+        print(coordinates)
+
+        # identify direction
+        direction = ""
+
+        if coordinates[0][0] == moveRow:
+            if coordinates[0][1] < moveCol:
+                direction = "E"
+            else:
+                direction = "W"
+
+        if coordinates[0][0] > moveRow:
+            if coordinates[0][1] == moveCol:
+                direction = "N"
+            elif coordinates[0][1] < moveCol:
+                direction = "NE"
+            else:
+                direction = "NW"
+
+        else:
+            if coordinates[0][1] == moveCol:
+                direction = "S"
+            elif coordinates[0][1] < moveCol:
+                direction = "SE"
+            else:
+                direction = "SW"
+
+        probMatrix[self.probChannels[direction], moveRow, moveRow] = 1
+
+
         # clear Channel
         board[self.channels[pieceType], :, :] = 0
         # remove captured piece
@@ -364,7 +426,7 @@ class TrainingData (torch.utils.data.Dataset):
         # place king
         board[self.channels[pieceType], moveRow, moveCol] = 1
         
-        return board
+        return board, probMatrix
 
     def knightMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
         # remove captured piece
@@ -372,6 +434,10 @@ class TrainingData (torch.utils.data.Dataset):
 
         # if specific piece noted, search that row / col
         if location == 'row':
+            # get knight coordinates
+
+            #***** START HERE
+
             # clear specified row
             board[self.channels[pieceType], pieceLoc, :] = 0
             
@@ -651,7 +717,7 @@ class TrainingData (torch.utils.data.Dataset):
 
 # import pickle
 
-# db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
+db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
 # with open(r'D:\Machine Learning\DeepLearningChessAI\Data\ratioDataset.db', 'wb') as file:
 #     pickle.dump(db.dataset, file)

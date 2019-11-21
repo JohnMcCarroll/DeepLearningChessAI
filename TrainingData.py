@@ -45,7 +45,6 @@ class TrainingData (torch.utils.data.Dataset):
             self.probChannels["NW"] = 49
             self.probChannels["knight"] = 56
             self.probChannels["promotion"] = 64
-            self.probChannels["castling"] = 73
 
 
             # open training data file
@@ -268,7 +267,7 @@ class TrainingData (torch.utils.data.Dataset):
         return board
 
     def initialProbMatrix(self):
-        return torch.zeros([74, 8, 8])
+        return torch.zeros([73, 8, 8])
 
     def parseMove(self, field, color):
         # initalize move variables
@@ -370,7 +369,7 @@ class TrainingData (torch.utils.data.Dataset):
             board[rookChannel, moveRow, 5] = 1
 
             # set probability
-            probMatrix[self.probChannels["castling"], moveRow, 7] = 1
+            probMatrix[self.probChannels["E"] + 1, moveRow, 4] = 1
 
         else:
             board[kingChannel, moveRow, 4] = 0
@@ -379,7 +378,7 @@ class TrainingData (torch.utils.data.Dataset):
             board[rookChannel, moveRow, 3] = 1
 
             # set probability
-            probMatrix[self.probChannels["castling"], moveRow, 0] = 1
+            probMatrix[self.probChannels["W"] + 1, moveRow, 4] = 1
 
         return board, probMatrix
 
@@ -429,19 +428,44 @@ class TrainingData (torch.utils.data.Dataset):
         return board, probMatrix
 
     def knightMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
+        # set up variables
+        moveHeight = 0
+        moveWidth = 0
+        pieceRow = -1
+        pieceCol = -1
+        probMatrix = self.initialProbMatrix()
+
         # remove captured piece
         board[0:12, moveRow, moveCol] = 0
 
         # if specific piece noted, search that row / col
         if location == 'row':
             # get knight coordinates
+            column = torch.nonzero(board[self.channels[pieceType], pieceLoc, :])
+            
+            # take negative difference
+            moveHeight = pieceLoc - moveRow
+            moveWidth = column.item() - moveCol
 
-            #***** START HERE
+            # store piece location
+            pieceRow = pieceLoc
+            pieceCol = column.item()
 
             # clear specified row
             board[self.channels[pieceType], pieceLoc, :] = 0
             
         elif location == 'col':
+            # get knight coordinates
+            row = torch.nonzero(board[self.channels[pieceType], :, pieceLoc])
+            
+            # take negative difference
+            moveHeight = row.item() - moveRow
+            moveWidth = pieceLoc - moveCol
+
+            # store piece location
+            pieceRow = row.item()
+            pieceCol = pieceLoc
+
             # clear specified column
             board[self.channels[pieceType], :, pieceLoc] = 0
             
@@ -450,22 +474,68 @@ class TrainingData (torch.utils.data.Dataset):
                 for y in [-1,1]:
                     if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
                         board[self.channels[pieceType], moveRow + x, moveCol + y] = 0
+
+                        # store move info
+                        moveHeight = y
+                        moveWidth = x
+                        pieceRow = moveRow + x
+                        pieceCol = moveCol + y
+
             for y in [-2,2]:
                 for x in [-1,1]:
                     if moveRow + x >= 0 and moveRow + x <= 7 and moveCol + y >= 0 and moveCol + y <= 7:
                         board[self.channels[pieceType], moveRow + x, moveCol + y] = 0
+                        
+                        # store move info
+                        moveHeight = y
+                        moveWidth = x
+                        pieceRow = moveRow + x
+                        pieceCol = moveCol + y
 
+        # move the knight
         board[self.channels[pieceType], moveRow, moveCol] = 1
 
-        return board
+        # log probability
+        moveWidth = moveWidth*(-1)
+        moveHeight = moveHeight*(-1)
+
+        if moveHeight == -2:
+            if moveWidth == 1:
+                probMatrix[self.probChannels["knight"], pieceRow, pieceCol] = 1
+            elif moveWidth == -1:
+                probMatrix[self.probChannels["knight"] + 7, pieceRow, pieceCol] = 1
+        elif moveHeight == -1:
+            if moveWidth == 2:
+                probMatrix[self.probChannels["knight"] + 1, pieceRow, pieceCol] = 1
+            elif moveWidth == -2:
+                probMatrix[self.probChannels["knight"] + 6, pieceRow, pieceCol] = 1
+        elif moveHeight == 1:
+            if moveWidth == 2:
+                probMatrix[self.probChannels["knight"] + 2, pieceRow, pieceCol] = 1
+            elif moveWidth == -2:
+                probMatrix[self.probChannels["knight"] + 5, pieceRow, pieceCol] = 1 
+        elif moveHeight == 2:
+            if moveWidth == 1:
+                probMatrix[self.probChannels["knight"] + 3, pieceRow, pieceCol] = 1
+            elif moveWidth == -1:
+                probMatrix[self.probChannels["knight"] + 4, pieceRow, pieceCol] = 1
+
+
+        return board, probMatrix
 
     def bishopMove(self, board, pieceType, moveRow, moveCol):
+        # set up variables
+        probMatrix = self.initialProbMatrix()
+        pieceRow = -1
+        pieceCol = -1
+
         # remove captured piece
         board[0:12, moveRow, moveCol] = 0
 
         startRow = moveRow
         startCol = moveCol
         notFound = True
+
         # set up first diagonal search from upper left most square
         while startRow > 0 and startCol > 0:                                    #optimize later***
             startRow -= 1
@@ -474,39 +544,80 @@ class TrainingData (torch.utils.data.Dataset):
             if board[self.channels[pieceType], startRow, startCol] == 1:
                 notFound = False
 
+                # store piece position
+                pieceRow = startRow
+                pieceCol = startCol
+
             board[self.channels[pieceType], startRow, startCol] = 0
             
             startRow += 1
             startCol += 1
+
         # set up second diagonal search from lower left most square
         startRow = moveRow
         startCol = moveCol
         while startRow < 7 and startCol > 0 and notFound:
             startRow += 1
             startCol -= 1
+
         while startRow >= 0 and startCol <= 7 and notFound:
             if board[self.channels[pieceType], startRow, startCol] == 1:
                 notFound = False
+
+                # store piece position
+                pieceRow = startRow
+                pieceCol = startCol
                 
             board[self.channels[pieceType], startRow, startCol] = 0
 
             startRow -= 1
             startCol += 1
 
+        # move piece
         board[self.channels[pieceType], moveRow, moveCol] = 1
 
-        return board
+        # set up probability
+        distance = abs(pieceCol - moveCol) - 1
+        height = moveCol - pieceCol
+        width = moveRow - pieceRow
+
+        if height < 0:
+            if width > 0:
+                probMatrix[self.probChannels["NE"] + distance, moveRow, moveCol] = 1
+            else:
+                probMatrix[self.probChannels["NW"] + distance, moveRow, moveCol] = 1
+        else:
+            if width > 0:
+                probMatrix[self.probChannels["SE"] + distance, moveRow, moveCol] = 1
+            else:
+                probMatrix[self.probChannels["SW"] + distance, moveRow, moveCol] = 1
+
+
+        return board, probMatrix
 
     def rookMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
+        # set up variables
+        pieceCol = -1
+        pieceRow = -1
+        probMatrix = self.initialProbMatrix()
+
         # remove captured piece
         board[0:12, moveRow, moveCol] = 0
 
         # if specific piece noted, search that row / col
         if location == 'row':
+            # save piece location
+            pieceRow = pieceLoc
+            pieceCol = torch.nonzero(board[self.channels[pieceType], pieceLoc, :]).item()
+
             # clear specified row
             board[self.channels[pieceType], pieceLoc, :] = 0        # negative pieceLoc signifies that it's a row
             
         elif location == 'col':
+            # save piece location
+            pieceRow = torch.nonzero(board[self.channels[pieceType], :, pieceLoc]).item()
+            pieceCol = pieceLoc
+
             # clear specified column
             board[self.channels[pieceType], :, pieceLoc] = 0
 
@@ -520,6 +631,10 @@ class TrainingData (torch.utils.data.Dataset):
                     if board[self.channels[pieceType], y, moveCol] == 1:
                         board[self.channels[pieceType], y, moveCol] = 0
                         notFound = False
+
+                        # store piece location
+                        pieceCol = moveCol
+                        pieceRow = y
                         break
                     else:
                         break
@@ -532,6 +647,10 @@ class TrainingData (torch.utils.data.Dataset):
                     if board[self.channels[pieceType], y, moveCol] == 1:
                         board[self.channels[pieceType], y, moveCol] = 0
                         notFound = False
+
+                        # store piece location
+                        pieceCol = moveCol
+                        pieceRow = y
                         break
                     else:
                         break
@@ -544,6 +663,10 @@ class TrainingData (torch.utils.data.Dataset):
                     if board[self.channels[pieceType], moveRow, x] == 1:
                         board[self.channels[pieceType], moveRow, x] = 0
                         notFound = False
+
+                        # store piece location
+                        pieceCol = x
+                        pieceRow = moveRow
                         break
                     else:
                         break
@@ -556,15 +679,46 @@ class TrainingData (torch.utils.data.Dataset):
                     if board[self.channels[pieceType], moveRow, x] == 1:
                         board[self.channels[pieceType], moveRow, x] = 0
                         notFound = False
+
+                        # store piece location
+                        pieceCol = x
+                        pieceRow = moveRow
                         break
                     else:
                         break
 
+        # move piece
         board[self.channels[pieceType], moveRow, moveCol] = 1
 
-        return board
+        # store probability
+        moveHeight = moveCol - pieceCol
+        moveWidth = moveRow - pieceRow
+
+        if moveWidth == 0:
+            if moveHeight < 0:
+                # calc distance
+                distance = (-1)*moveHeight - 1
+                probMatrix[self.probChannels["N"] + distance, pieceRow, pieceCol]
+            else:
+                # calc distance
+                distance = moveHeight - 1
+                probMatrix[self.probChannels["S"] + distance, pieceRow, pieceCol]
+        elif moveHeight == 0:
+            if moveWidth > 0:
+                # calc distance
+                distance = moveWidth - 1
+                probMatrix[self.probChannels["E"] + distance, pieceRow, pieceCol]
+            else:
+                # calc distance
+                distance = (-1)*moveHeight - 1
+                probMatrix[self.probChannels["W"] + distance, pieceRow, pieceCol]
+
+        return board, probMatrix
 
     def queenMove(self, board, pieceType, moveRow, moveCol, pieceLoc, location):
+        # set up variables
+        # START HERE***
+
         # remove captured piece
         board[0:12, moveRow, moveCol] = 0
 

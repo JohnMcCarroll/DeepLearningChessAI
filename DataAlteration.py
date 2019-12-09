@@ -6,44 +6,46 @@ import statistics
 
 # script to change data results from win/loss to win probability
 
-# assumes data is list
+# assumes data is list and board is in string representation
 def probability(data):
     # get dataset and set up dictionary
     table = dict()
     #counter = 0
     # convert list into dictionary where key is input and value is list of game results
     for datum in data:
-        
-        # convert tensor to immutable tuple
-        t = datum[0].flatten()
-        t = t.tolist()
-        t = [round(x, 3) for x in t]
-        boardTuple = tuple(t)
 
         # pair boardstates with list of results
-        if boardTuple in table:
-            table[boardTuple] = table[boardTuple] + [datum[1]]
+        if datum[0] in table:
+            table[datum[0]] = table[datum[0]] + [datum[1]]
         else:
-            table[boardTuple] = [datum[1]]
+            table[datum[0]] = [datum[1]]
 
         #counter += 1
         #print(counter)
 
     print("list converted to dictionary")
-    
+
+    with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKeyProb_table.db', 'wb') as file:
+        pickle.dump(table, file)
+
+    print("comparison of table to list:")
+    print("list length:")
+    print(len(data))
+    print("hashtable keys:")
+    print(len(table.keys()))
+
+    sum = 0
+
     # calculate probabilities
     for position in table.keys():
+        sum += len(table[position])
         table[position] = statistics.mean(table[position])
+
+    print("hashtable elements:")
+    print(sum)
 
     # convert dict to list of tuples
     newDataset = [(k, v) for k, v in table.items()]
-
-    # convert boardstate tuple to tensor
-    for index in range(0, len(newDataset)):
-        board = list(newDataset[index][0])
-        board = torch.FloatTensor(board)
-        board = board.reshape(14,8,8)
-        newDataset[index] = (board, newDataset[index][1])
 
 
     print("altered data")
@@ -87,34 +89,119 @@ def initialBoard():
 
         return board
 
+def boardToString(board):
+    string = ""
+    for i in range(0,64):
+        spaceVector = board[0:12, int(i / 8), i % 8]
+        channel = (spaceVector == 1).nonzero()       #get the piece type that resides on square
+
+        try:
+            if channel.size()[0] == 0:                  # if empty
+                string += "E,"
+            elif channel.item() == 0:
+                string += "WK,"
+            elif channel.item() == 1:
+                string += "WQ,"
+            elif channel.item() == 2:
+                string += "WR,"
+            elif channel.item() == 3:
+                string += "WB,"
+            elif channel.item() == 4:
+                string += "WN,"
+            elif channel.item() == 5:
+                string += "WP,"
+            elif channel.item() == 6:
+                string += "BK,"
+            elif channel.item() == 7:
+                string += "BQ,"
+            elif channel.item() == 8:
+                string += "BR,"
+            elif channel.item() == 9:
+                string += "BB,"
+            elif channel.item() == 10:
+                string += "BN,"
+            elif channel.item() == 11:
+                string += "BP,"
+
+        except:
+            print(board)
+            print(channel)
+            return None
+
+    # whose turn?
+    turn = board[13, 0, 0]
+    if turn == 0:
+        string += "W"
+    else:
+        string += "B"
+
+    return string
+
 ### data recovery:
 #data = td.TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
 # with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
 #     data = pickle.load(file)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
+
+
+### converting to string rep of board for key
+"""
+with open(r'D:\Machine Learning\DeepLearningChessAI\full_dataset.db', 'rb') as file:
     data = pickle.load(file)
 
-print(data[0][0].size())
+corrupt = list()
+for index in range(0, len(data)):
+    stringBoard = boardToString(data[index][0])
+    if stringBoard != None:
+        data[index] = (stringBoard, data[index][1])
+    else:
+        corrupt.append(index)
 
-total = 0
-numProb = 0
-filtered = []
+# remove bad data (reversed to preserve indexes)
+print(len(corrupt))
+print(corrupt)
 
-for datum in data:
-    total += 1
+for badDatum in reversed(corrupt):
+    del data[badDatum]
 
-    if datum[1] != 0.0 and datum[1] != 1.0 and datum[1] != 0.5:
-        numProb += 1
-        filtered.append(datum)
-
-print(total)
-print(numProb)
-
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_filtered.db', 'wb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKey.db', 'wb') as file:
     pickle.dump(data, file)
+"""
 
+
+### counting / converting test data
+"""
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKey.db', 'rb') as file:
+    data = pickle.load(file)
+
+print(data[23])
+
+data = probability(data)
+
+#print(data[0])
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKeyProb.db', 'wb') as file:
+    pickle.dump(data, file)
+"""
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKeyProb_table.db', 'rb') as file:
+    data = pickle.load(file)
+
+start = boardToString(initialBoard())
+print(start)
+print(data[start])              # openning position NOT in dataset...???***
+
+index = 0
+for key in data.keys():
+    print(key)
+    print(data[key])
+    index += 1
+    input()
+
+
+
+"""
+"""
 #     print(datum[1])
 #     print(type(datum[1]))
 #     if datum[1] != 0.0 and datum[1] != 0.5 and datum[1] != 1.0:

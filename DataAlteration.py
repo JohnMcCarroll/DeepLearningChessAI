@@ -49,8 +49,7 @@ def probability(data):
 
 
     print("altered data")
-    return newDataset
-    
+    return newDataset    
             
 def initialBoard():
         # initialize board state tensor
@@ -137,6 +136,53 @@ def boardToString(board):
 
     return string
 
+def displayBoard(board):
+    # create display
+    display = [['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '],
+               ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '],
+               ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '],
+               ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']]
+
+    # set up piece representations
+    pieces = dict(
+        [(0, "K+"), (1, "Q+"), (2, "R+"), (3, "B+"), (4, "N+"), (5, "P+"), (6, "K-"), (7, "Q-"), (8, "R-"),
+         (9, "B-"), (10, "N-"), (11, "P-")])
+
+    # transcribe board tensor
+    for channel in range(0, 12):
+        for x in range(0, 8):
+            for y in range(0, 8):
+                if board[channel][y][x] == 1:
+                    display[y][x] = pieces[channel]
+
+    print('')
+    if board[13][0][0] == 1:
+        print("Black to move")
+    else:
+        print("White to move")
+    print('')
+
+    print('8', end='  ')
+    print(display[0])
+    print('7', end='  ')
+    print(display[1])
+    print('6', end='  ')
+    print(display[2])
+    print('5', end='  ')
+    print(display[3])
+    print('4', end='  ')
+    print(display[4])
+    print('3', end='  ')
+    print(display[5])
+    print('2', end='  ')
+    print(display[6])
+    print('1', end='  ')
+    print(display[7])
+    print('')
+    print(' ', end='  ')
+    print(['a ', 'b ', 'c ', 'd ', 'e ', 'f ', 'g ', 'h '])
+    print('')
+
 ### data recovery:
 #data = td.TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
@@ -171,18 +217,34 @@ with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKey.db', 'wb') as
 
 
 ### counting / converting test data
-"""
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKey.db', 'rb') as file:
+
+## testing a test
+
+start = initialBoard()
+plz = torch.equal( start, initialBoard())
+print(plz)
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset2.db', 'rb') as file:
     data = pickle.load(file)
 
-print(data[23])
+starting = initialBoard()
 
+print(data[0])
+
+for item in data:
+    displayBoard(item[0])
+    input()
+
+"""
 data = probability(data)
 
 #print(data[0])
 
 with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKeyProb.db', 'wb') as file:
     pickle.dump(data, file)
+"""
+
+### checking kvps of table
 """
 with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKeyProb_table.db', 'rb') as file:
     data = pickle.load(file)
@@ -198,7 +260,7 @@ for key in data.keys():
     index += 1
     input()
 
-
+"""
 
 """
 """

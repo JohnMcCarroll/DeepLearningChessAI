@@ -275,4 +275,4 @@ player.play()
 
 ### DEBUGGING
 # list index out of range line 116 {done}}}
-# fix checkmate / stalemate evaluation
+# fix checkmate / stalemate evaluation - crashed queen into d2 and was deemed a checkmate...*

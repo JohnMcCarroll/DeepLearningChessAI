@@ -123,8 +123,18 @@ class TrainingData (torch.utils.data.Dataset):
                         # change to str board
                         stringBoard = self.boardToString(board)
 
-                        # self.displayBoard(board)
-                        # self.dataset[board] = result        #store board state
+                        # debugging two piece one square bug:***
+                        if stringBoard == None:
+                            print(line)
+                            print(field)
+                            print(pieceType)
+                            print(moveRow)
+                            print(moveCol)
+                            input()
+                        print("before:")
+                        self.displayBoard(board)
+
+                        #store board state
                         if stringBoard in self.dataset:
                             self.dataset[stringBoard] = self.dataset[stringBoard] + [result]
                         else:
@@ -138,6 +148,7 @@ class TrainingData (torch.utils.data.Dataset):
                         # input()
 
         except Exception as e:
+            print("The whole thing went wonky")
             print(e)
 
     def __getitem__(self, index):
@@ -295,6 +306,7 @@ class TrainingData (torch.utils.data.Dataset):
             moveCol = ord(field[2]) - 97
             moveRow = 8 - int(field[3])
         else:
+            print("parseMove: unidentified field:")
             print(field)
         return moveRow, moveCol, pieceType, pieceLoc, location, promotion
                                 
@@ -623,6 +635,7 @@ class TrainingData (torch.utils.data.Dataset):
                     string += "BP,"
 
             except:
+                print("Failed to convert board to string")
                 print(board)
                 print(channel)
                 return None
@@ -640,7 +653,7 @@ import pickle
 
 db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset2.db', 'wb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'wb') as file:
     pickle.dump(db.dataset, file)
 
 data = db.dataset
@@ -648,4 +661,5 @@ data = db.dataset
 for item in data.keys():
 #     if torch.equal(item[0], db.initialBoard()):
     print(data[item])
+    print("press button")
     input()

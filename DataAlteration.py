@@ -136,52 +136,75 @@ def boardToString(board):
 
     return string
 
-def displayBoard(board):
-    # create display
-    display = [['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '],
-               ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '],
-               ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '],
-               ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  '], ['  ', '  ', '  ', '  ', '  ', '  ', '  ', '  ']]
+def averageResults(data):
+    # remove Faulty boards ***
+    if None in data:
+        del data[None]
 
-    # set up piece representations
-    pieces = dict(
-        [(0, "K+"), (1, "Q+"), (2, "R+"), (3, "B+"), (4, "N+"), (5, "P+"), (6, "K-"), (7, "Q-"), (8, "R-"),
-         (9, "B-"), (10, "N-"), (11, "P-")])
+    # calculate probabilities
+    for position in data.keys():
+        # convert to tensor rep of board
+        board = stringToBoard(position)
+        # add new pair to dataset
+        data[board] = statistics.mean(data[position])
+        # remove old pair from dataset
+        del data[position]
 
-    # transcribe board tensor
-    for channel in range(0, 12):
-        for x in range(0, 8):
-            for y in range(0, 8):
-                if board[channel][y][x] == 1:
-                    display[y][x] = pieces[channel]
+    print("hashtable elements:")
+    print(data.keys()[0])
+    print(data.keys()[1])
+    print(len(data.keys()))
 
-    print('')
-    if board[13][0][0] == 1:
-        print("Black to move")
-    else:
-        print("White to move")
-    print('')
+    # convert dict to list of tuples
+    newDataset = [(k, v) for k, v in data.items()]
 
-    print('8', end='  ')
-    print(display[0])
-    print('7', end='  ')
-    print(display[1])
-    print('6', end='  ')
-    print(display[2])
-    print('5', end='  ')
-    print(display[3])
-    print('4', end='  ')
-    print(display[4])
-    print('3', end='  ')
-    print(display[5])
-    print('2', end='  ')
-    print(display[6])
-    print('1', end='  ')
-    print(display[7])
-    print('')
-    print(' ', end='  ')
-    print(['a ', 'b ', 'c ', 'd ', 'e ', 'f ', 'g ', 'h '])
-    print('')
+
+    print("altered data")
+    return newDataset  
+
+def stringToBoard(stringBoard):
+    # initialize board state tensor
+    board = torch.zeros([14, 8, 8])
+
+    # set turn
+    if stringBoard[-1] == "B":
+        board[12:14, :, :] = 1
+
+    # place pieces
+    boardFields = stringBoard.split(",")
+    for index in range(0,64):
+        col = index % 8
+        row = int(index / 8)
+
+        if boardFields[index] == "E":
+            continue
+        elif boardFields[index] == "WK":
+            board[0, row, col] = 1
+        elif boardFields[index] == "WQ":
+            board[1, row, col] = 1
+        elif boardFields[index] == "WR":
+            board[2, row, col] = 1
+        elif boardFields[index] == "WB":
+            board[3, row, col] = 1
+        elif boardFields[index] == "WN":
+            board[4, row, col] = 1
+        elif boardFields[index] == "WP":
+            board[5, row, col] = 1
+        elif boardFields[index] == "BK":
+            board[6, row, col] = 1
+        elif boardFields[index] == "BQ":
+            board[7, row, col] = 1
+        elif boardFields[index] == "BR":
+            board[8, row, col] = 1
+        elif boardFields[index] == "BB":
+            board[9, row, col] = 1
+        elif boardFields[index] == "BN":
+            board[10, row, col] = 1
+        elif boardFields[index] == "BP":
+            board[11, row, col] = 1
+    
+    return board
+
 
 ### data recovery:
 #data = td.TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
@@ -220,20 +243,23 @@ with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKey.db', 'wb') as
 
 ## testing a test
 
-start = initialBoard()
-plz = torch.equal( start, initialBoard())
-print(plz)
+# start = initialBoard()
+# plz = torch.equal( start, initialBoard())
+# print(plz)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset2.db', 'rb') as file:
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'rb') as file:
     data = pickle.load(file)
 
-starting = initialBoard()
 
-print(data[0])
+print(data[None])
 
-for item in data:
-    displayBoard(item[0])
-    input()
+data = averageResults(data)
+
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_dataset.db', 'wb') as file:
+    pickle.dump(data, file)
+
+
 
 """
 data = probability(data)
@@ -289,8 +315,6 @@ for key in data.keys():
 
 # with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'wb') as file:
 #     pickle.dump(data, file)
-
-
 
 
 

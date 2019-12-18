@@ -141,22 +141,27 @@ def averageResults(data):
     if None in data:
         del data[None]
 
+    size = len(data.keys())
+    print("size:")
+    print(size)
+    keys = list(data.keys())
+    newDataset = list()
+
     # calculate probabilities
-    for position in data.keys():
+    for index in range(0, int(size / 4)):
         # convert to tensor rep of board
-        board = stringToBoard(position)
-        # add new pair to dataset
-        data[board] = statistics.mean(data[position])
+        board = stringToBoard(keys[index])
+        # add new pair to new dataset
+        newDataset.append((board, statistics.mean(data[keys[index]])))
         # remove old pair from dataset
-        del data[position]
+        del data[keys[index]]
 
-    print("hashtable elements:")
-    print(data.keys()[0])
-    print(data.keys()[1])
-    print(len(data.keys()))
+    # print("hashtable elements:")
+    # print(table.keys()[0])
+    # print(len(data.keys()))
 
-    # convert dict to list of tuples
-    newDataset = [(k, v) for k, v in data.items()]
+    print("next start:")
+    print(int(size / 4))
 
 
     print("altered data")
@@ -254,12 +259,15 @@ with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', '
 
 print(data[None])
 
-data = averageResults(data)
+table = averageResults(data)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_dataset.db', 'wb') as file:
-    pickle.dump(data, file)
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_dataset1.db', 'wb') as file:
+    pickle.dump(table, file)
 
-
+for board in table:
+    print("press button")
+    input()
+    print(board)
 
 """
 data = probability(data)

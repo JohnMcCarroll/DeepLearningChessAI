@@ -1,8 +1,8 @@
 import torch
 import pickle
-#import TrainingData as td
-import Node
 import statistics
+import gc
+import json
 
 # script to change data results from win/loss to win probability
 
@@ -136,33 +136,28 @@ def boardToString(board):
 
     return string
 
-def averageResults(data):
-    # remove Faulty boards ***
-    if None in data:
-        del data[None]
+def averageResults(data, index):
 
     size = len(data.keys())
-    print("size:")
-    print(size)
+    start = index * int(size / 32)
+    end = (index + 1) * int(size / 32)
+
+    print("start:")
+    print(start)
+    print("end:")
+    print(end)
+
     keys = list(data.keys())
     newDataset = list()
 
     # calculate probabilities
-    for index in range(0, int(size / 4)):
+    for index in range(start, end):
         # convert to tensor rep of board
         board = stringToBoard(keys[index])
         # add new pair to new dataset
         newDataset.append((board, statistics.mean(data[keys[index]])))
         # remove old pair from dataset
         del data[keys[index]]
-
-    # print("hashtable elements:")
-    # print(table.keys()[0])
-    # print(len(data.keys()))
-
-    print("next start:")
-    print(int(size / 4))
-
 
     print("altered data")
     return newDataset  
@@ -210,156 +205,53 @@ def stringToBoard(stringBoard):
     
     return board
 
+# data alterations
 
-### data recovery:
-#data = td.TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
-# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'rb') as file:
+# with open(r'D:\ChessEngine\DeepLearningChessAI\Data\hashtableDataset\hashtableDataset.db', 'rb') as file:
 #     data = pickle.load(file)
 
+# del data[None]
+
+# for i in range(0, 32):
+
+#     table = averageResults(data, i)
+
+#     gc.collect()                                                            # induce garbage collection to free space before save
+
+#     with open(r'D:\ChessEngine\DeepLearningChessAI\Data\prob_dataset' + str(i) + '.db', 'wb') as file:
+#         pickle.dump(table, file)
 
 
-### converting to string rep of board for key
-"""
-with open(r'D:\Machine Learning\DeepLearningChessAI\full_dataset.db', 'rb') as file:
-    data = pickle.load(file)
-
-corrupt = list()
-for index in range(0, len(data)):
-    stringBoard = boardToString(data[index][0])
-    if stringBoard != None:
-        data[index] = (stringBoard, data[index][1])
-    else:
-        corrupt.append(index)
-
-# remove bad data (reversed to preserve indexes)
-print(len(corrupt))
-print(corrupt)
-
-for badDatum in reversed(corrupt):
-    del data[badDatum]
-
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKey.db', 'wb') as file:
-    pickle.dump(data, file)
-"""
-
-
-### counting / converting test data
-
-## testing a test
-
-# start = initialBoard()
-# plz = torch.equal( start, initialBoard())
-# print(plz)
-
-
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'rb') as file:
-    data = pickle.load(file)
-
-
-print(data[None])
-
-table = averageResults(data)
-
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_dataset1.db', 'wb') as file:
-    pickle.dump(table, file)
-
-for board in table:
-    print("press button")
-    input()
-    print(board)
+# data combinations
 
 """
-data = probability(data)
-
-#print(data[0])
-
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKeyProb.db', 'wb') as file:
-    pickle.dump(data, file)
-"""
-
-### checking kvps of table
-"""
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\StringKeyProb_table.db', 'rb') as file:
-    data = pickle.load(file)
-
-start = boardToString(initialBoard())
-print(start)
-print(data[start])              # openning position NOT in dataset...???***
-
+import os
+fullData = list()
 index = 0
-for key in data.keys():
-    print(key)
-    print(data[key])
-    index += 1
-    input()
 
+for filename in os.listdir(r"D:\ChessEngine\DeepLearningChessAI\Data\prob_data"):
+    with open(r"D:\ChessEngine\DeepLearningChessAI\Data\prob_data\\" + filename, 'rb') as file:
+        data = pickle.load(file)
+
+    fullData.extend(data)
+
+    print(filename + " added")
+
+    data = []
+
+    gc.collect()
+
+    with open(r'D:\ChessEngine\DeepLearningChessAI\Data\prob_data\prob_data' + str(index) + '.db', 'wb') as file:
+        pickle.dump(fullData, file)
+        index += 1
 """
 
-"""
-"""
-#     print(datum[1])
-#     print(type(datum[1]))
-#     if datum[1] != 0.0 and datum[1] != 0.5 and datum[1] != 1.0:
-#         print(datum)
-#         input()
+### Next Steps:
+# compile hashtable data into list of (tensor, double) tuples
+# remove positions that only appeared once (eliminate binary bias)
+# add next move to data & CNN architecture
 
-# data = probability(data)
-
-# print(data[0])
-# print(data[4])
-# print(data[10])
-# print(data[12])
-# print(data[19])
-# print(data[24])
-# print(data[39])
-# print(data[40])
-# print(data[41])
-# print(data[42])
-# print(data[43])
-# print(data[44])
-# print(data[45])
-# print(data[46])
-
-# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\full_dataset.db', 'wb') as file:
-#     pickle.dump(data, file)
-
-
-
-### data verification:
-
-# with open(r'D:\Machine Learning\DeepLearningChessAI\full_dataset2.db', 'rb') as file:
-#     data = pickle.load(file)
-
-# with open(r'D:\Machine Learning\DeepLearningChessAI\test_set.db', 'rb') as file:
-#     data2 = pickle.load(file)
-
-# with open(r'D:\Machine Learning\DeepLearningChessAI\val_set.db', 'rb') as file:
-#     data3 = pickle.load(file)
-
-# full_data = data1 + data2 + data3
-
-# with open(r'D:\Machine Learning\DeepLearningChessAI\full_dataset.db', 'wb') as file:
-#     pickle.dump(full_data, file)
-
-
-# print("size:")
-# print(len(data))
-# input()
-
-
-# with open(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn', 'rb') as file:
-#    data = pickle.load(file)           
-
-
-
-# data = list()
-# data.append((initialBoard(), 0.5))
-# data.append((initialBoard(), 1.0))
-
-
-# data = probability(data)
-
-# print('data:')
-# print(data)
-
+# .numpy().tolist() - (155)
+# 'w' - (224)
+# json - (225)

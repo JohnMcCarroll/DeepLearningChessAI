@@ -116,7 +116,7 @@ class Player():
 
         print(index)
 
-        self.tree = children[index[0]]                      #minimax return index... orrr?****START HERE
+        self.tree = children[index[0]]                      #minimax return index
         print(self.tree)
 
     # searches for optimally evaluated move - returns a tuple of (index, value)
@@ -196,10 +196,13 @@ class Player():
     def isMate(self, node):                     # assumes node already created children
         isMate = False
 
-        children = node.getChildren()
+        children = node.getChildren()           
+        if not children:                        # if children not already created
+            node.createChildren()
+            children = node.getChildren()
 
         if not children:                        # if leaf node & in check
-            if node.inCheck(node.getBoard()):
+            if node.inCheck():
                 isMate = True
 
         return isMate
@@ -263,16 +266,43 @@ def initialBoard():
 
     return board
 
-board = initialBoard()
-game = Node.Node(board)
-network = 0
-with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5.cnn', 'rb') as file:
-    network = pickle.load(file)
-    network = network.cpu()
-player = Player(game, network, "White", 3, 3)
-player.play()
+# Play Script
 
+# board = initialBoard()
+# game = Node.Node(board)
+
+# network = 0
+# network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
+# network = network.cpu()
+
+# player = Player(game, network, "White", 6, 3)
+# player.play()
+
+# # Debug Script
+# import DataAlteration
+# import PredictionVisualization
+
+#     # create boardstate that casused error
+# str_board = "BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,E,BP,BP,BP,E,E,E,E,E,E,E,E,E,E,E,E,BP,E,E,E,E,E,E,E,E,E,WP,E,E,E,E,E,E,E,E,E,WP,WP,WP,WP,WP,WP,E,WP,WR,WN,WB,WQ,WK,WB,WN,WR,W"
+# board = DataAlteration.stringToBoard(str_board)
+
+    # create starting boardstate
+board = initialBoard()
+
+
+game = Node.Node(board)
+
+network = 0
+network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
+network = network.cuda()                                                               # GPU compatible
+
+player = Player(game, network, "White", 1, 1)
+player.play()
 
 ### DEBUGGING
 # list index out of range line 116 {done}}}
-# fix checkmate / stalemate evaluation - crashed queen into d2 and was deemed a checkmate...*
+# fix isMate() Bug / stalemate evaluation - crashed queen into d2 and was deemed a checkmate...*
+
+### improvements
+# alpha beta pruning
+# other time efficiency improvements...

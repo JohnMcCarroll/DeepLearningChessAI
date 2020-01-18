@@ -6,7 +6,7 @@ import re
 import pickle
 
 class Player():
-    def __init__(self, node, cnn, color, depth=1, breadth=1):
+    def __init__(self, node, cnn, color="White", depth=1, breadth=1):
         self.tree = node
         self.cnn = cnn
 
@@ -210,7 +210,10 @@ class Player():
     def isStalemate(self, node):                # assumes node already created children
         isStalemate = False
 
-        children = node.getChildren()
+        children = node.getChildren()           
+        if not children:                        # if children not already created
+            node.createChildren()
+            children = node.getChildren()
 
         if not children:                        # if leaf node & not in check
             if not node.inCheck():
@@ -288,20 +291,28 @@ def initialBoard():
 
     # create starting boardstate
 board = initialBoard()
-
+board[0:12, 0, 3] = 0
+board[0:12, 1, 4] = 0
+## board[0:12, 6, 2] = 0
+board[0:12, 6, 3] = 0
+board[0:12, 7, 6] = 0
+board[7, 2, 5] = 1
+board[11, 3, 4] = 1
+## board[5, 4, 2] = 1
+board[5, 5, 3] = 1
 
 game = Node.Node(board)
 
-network = 0
+print(game)
+
 network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
 network = network.cuda()                                                               # GPU compatible
 
-player = Player(game, network, "White", 1, 1)
+player = Player(game, network, "White", 3, 3)
 player.play()
 
 ### DEBUGGING
-# list index out of range line 116 {done}}}
-# fix isMate() Bug / stalemate evaluation - crashed queen into d2 and was deemed a checkmate...*
+# bishop move not generated {not replicated}
 
 ### improvements
 # alpha beta pruning

@@ -4,6 +4,7 @@ import torch
 import torch.utils.data
 import numpy as np
 import random
+import pickle
 
 """
     TrainingData
@@ -17,7 +18,6 @@ class TrainingData (torch.utils.data.Dataset):
         try:
             # set instance variables
             self.dataset = dict()           # dataset
-            self.cudaDataset = list()       #for gpu processing
             self.channels = dict()      # piece type hashtable
             self.channels['WK'] = 0
             self.channels['WQ'] = 1
@@ -130,22 +130,19 @@ class TrainingData (torch.utils.data.Dataset):
                             print(pieceType)
                             print(moveRow)
                             print(moveCol)
+                            
+                            print("before:")
+                            print(before)
+                            print("after")
+                            print(board)
                             input()
-                        print("before:")
-                        self.displayBoard(board)
+                        before = board
 
                         #store board state
                         if stringBoard in self.dataset:
                             self.dataset[stringBoard] = self.dataset[stringBoard] + [result]
                         else:
                             self.dataset[stringBoard] = [result]
-
-                        # TESTING: print resulting board state:
-                        # self.displayBoard(board)
-                        # #TESTING
-                        # print(board)
-                        # print(result)
-                        # input()
 
         except Exception as e:
             print("The whole thing went wonky")
@@ -636,7 +633,6 @@ class TrainingData (torch.utils.data.Dataset):
 
             except:
                 print("Failed to convert board to string")
-                print(board)
                 print(channel)
                 return None
 
@@ -649,17 +645,19 @@ class TrainingData (torch.utils.data.Dataset):
 
         return string
 
-import pickle
 
+# Create TrainingData object, parsing through PGN file
 db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'wb') as file:
-    pickle.dump(db.dataset, file)
+# store hashtable dataset
+# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'wb') as file:
+#     pickle.dump(db.dataset, file)
 
 data = db.dataset
+print(data[None])
 
-for item in data.keys():
-#     if torch.equal(item[0], db.initialBoard()):
-    print(data[item])
-    print("press button")
-    input()
+
+### Learned:
+# no two piece errors in Test PGN
+# None errors in main DB
+# *might not need stringboard?

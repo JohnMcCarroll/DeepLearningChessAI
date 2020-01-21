@@ -116,7 +116,7 @@ class Player():
 
         print(index)
 
-        self.tree = children[index[0]]                      #minimax return index... orrr?****START HERE
+        self.tree = children[index[0]]                      # minimax return index... orrr?****START HERE
         print(self.tree)
 
     # searches for optimally evaluated move - returns a tuple of (index, value)
@@ -125,7 +125,7 @@ class Player():
         if not node.getChildren():
             node.createChildren()
 
-        # base condition:  specified depth
+        # base condition:  specified depth, mate
         if depth == 0 or self.isMate(node):
             return (nodeIndex, self.cnn(torch.unsqueeze(node.getBoard(), 0)))
 
@@ -143,10 +143,10 @@ class Player():
             while x < self.breadth and len(lines):
                 x += 1
 
-                # find and remove most promising line
+                # find and replace most promising line
                 best = max(lines)
                 index = lines.index(best)
-                lines.remove(best)
+                lines[index] = 0                            # subtitute current max with lowest eval    
 
                 # store highest value & index of most promising lines
                 proxy = self.minimax(node.getChildren()[index], depth-1, False, nodeIndex=index)
@@ -166,10 +166,9 @@ class Player():
                 # find and remove most promising line
                 best = min(lines)
                 index = lines.index(best)
-                lines.remove(best)
+                lines[index] = 1                            # subtitute current min with highest eval
 
-                # store lowest value of most promising lines
-                # store highest value & index of most promising lines
+                # store lowest value & index of most promising lines
                 proxy = self.minimax(node.getChildren()[index], depth-1, True, nodeIndex=index)
                 if value[1] > proxy[1]:
                     value = proxy
@@ -273,6 +272,9 @@ player = Player(game, network, "White", 3, 3)
 player.play()
 
 
-### DEBUGGING
-# list index out of range line 116 {done}}}
-# fix checkmate / stalemate evaluation - crashed queen into d2 and was deemed a checkmate...*
+### DEBUGGING & IMPROVEMENTS
+        # list index out of range line 116 {done}}}
+        # fix checkmate / stalemate evaluation - crashed queen into d2 and was deemed a checkmate...{done}}}
+        # changing minimax lines list index by removing items **?
+# alpha beta pruning for minimax
+# GPU tensor calculations

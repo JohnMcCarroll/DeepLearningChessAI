@@ -51,24 +51,24 @@ def displayBoard(board):
     print(['a ', 'b ', 'c ', 'd ', 'e ', 'f ', 'g ', 'h '])
     print('')
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\ratioDataset.db', 'rb') as file:
-    train_set = pickle.load(file)
+# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\ratioDataset.db', 'rb') as file:
+#     train_set = pickle.load(file)
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'rb') as file:
-    network = pickle.load(file)
+# with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Statistician.cnn', 'rb') as file:
+#     network = pickle.load(file)
 
-#train_set, validation_set, dummy_set = torch.utils.data.random_split(train_set, [166000, 18000, 72])
-train_loader = torch.utils.data.DataLoader(train_set, 1, shuffle=True)
+# #train_set, validation_set, dummy_set = torch.utils.data.random_split(train_set, [166000, 18000, 72])
+# train_loader = torch.utils.data.DataLoader(train_set, 1, shuffle=True)
 
-for batch in train_loader:
+# for batch in train_loader:
 
-    board, result = batch
-    displayBoard(board)
+#     board, result = batch
+#     displayBoard(board)
 
-    pred = network(board.cuda())
-    print('Evaluation:')
-    print(pred)
+#     pred = network(board.cuda())
+#     print('Evaluation:')
+#     print(pred)
 
-    input()
+#     input()
 
 # fun class to visualize board alongside a network's evaluation of the position - manual testing / confirmation

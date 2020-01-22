@@ -130,13 +130,7 @@ class TrainingData (torch.utils.data.Dataset):
                             print(pieceType)
                             print(moveRow)
                             print(moveCol)
-                            
-                            print("before:")
-                            print(before)
-                            print("after")
-                            print(board)
                             input()
-                        before = board
 
                         #store board state
                         if stringBoard in self.dataset:
@@ -658,6 +652,7 @@ print(data[None])
 
 
 ### Learned:
+# CASE: midle of game missing, resulting in pieces overlapping
 # no two piece errors in Test PGN
 # None errors in main DB
 # *might not need stringboard?

@@ -1,11 +1,14 @@
 import torch
 import pickle
 import copy
+import traceback
 
+import PredictionVisualization
+import sys
 
 class Node:
     def __init__(self, boardState, parent=None):
-        self.boardState = boardState            # the position of the pieces
+        self.boardState = boardState.cuda()     # the position of the pieces, on GPU
         self.color = ""                         # the color to move
 
         self.colorChannels = list()             # set of channels that house own color pieces
@@ -35,6 +38,19 @@ class Node:
         # determine historical boolean statuses
         if parent is not None:
             self.updateStatus(parent, self.boardState)
+
+        #debugging***
+        # if 0 == torch.nonzero(boardState[self.colorChannels[0], :, :]).nelement():
+        #     print("child:")
+        #     print(self)
+        #     print("parent:")
+        #     print(self.parent)
+        #     print("grandparent:")
+        #     print(self.parent.getParent())
+        #     print("great grandparent:")
+        #     print(self.parent.getParent().getParent())
+        #     print("great great grandparent:")
+        #     print(self.parent.getParent().getParent().getParent())
 
     def createChildren(self):
         # clear children
@@ -736,12 +752,19 @@ class Node:
 
         return moves
 
-    def inCheck(self, boardState, coordinates=[-1,-1]):
+    def inCheck(self, boardState=1, coordinates=[-1,-1]):
         check = False
+
+        # handle defaults
+        if type(boardState) == int:
+            boardState = self.boardState
 
         if coordinates == [-1, -1]:
             # get king's coordinates if no square specified
-            coordinates = torch.nonzero(boardState[self.colorChannels[0], :, :])[0]
+            try:
+                coordinates = torch.nonzero(boardState[self.colorChannels[0], :, :])[0]             # ***indexing issue - nonzero returned no coords... no king on board?***
+            except IndexError:
+                sys.exit()
 
         # dummy loop to enable skipping
         for dummy in range(0,1):
@@ -854,7 +877,7 @@ class Node:
                 distance = left
 
             if distance > -1:
-                for x in range(1, distance + 1):
+                for x in range(1, distance + 2):
                     # check if in line of opp bish or queen
                     if torch.max(boardState[self.oppColorChannels[1], coordinates[0] - x, coordinates[1] - x]) or torch.max(boardState[self.oppColorChannels[3], coordinates[0] - x, coordinates[1] - x]):
                         check = True
@@ -869,7 +892,7 @@ class Node:
                 distance = right
 
             if distance > -1:
-                for x in range(1, distance + 1):
+                for x in range(1, distance + 2):
                     # check if in line of opp bish or queen
                     if torch.max(boardState[self.oppColorChannels[1], coordinates[0] - x, coordinates[1] + x]) or torch.max(boardState[self.oppColorChannels[3], coordinates[0] - x, coordinates[1] + x]):
                         check = True
@@ -884,7 +907,7 @@ class Node:
                 distance = left
 
             if distance > -1:
-                for x in range(1, distance + 1):
+                for x in range(1, distance + 2):
                     # check if in line of opp bish or queen
                     if torch.max(boardState[self.oppColorChannels[1], coordinates[0] + x, coordinates[1] - x]) or torch.max(boardState[self.oppColorChannels[3], coordinates[0] + x, coordinates[1] - x]):
                         check = True
@@ -899,7 +922,7 @@ class Node:
                 distance = right
 
             if distance > -1:
-                for x in range(1, distance + 1):
+                for x in range(1, distance + 2):
                     # check if in line of opp bish or queen
                     if torch.max(boardState[self.oppColorChannels[1], coordinates[0] + x, coordinates[1] + x]) or torch.max(boardState[self.oppColorChannels[3], coordinates[0] + x, coordinates[1] + x]):
                         check = True
@@ -1020,6 +1043,8 @@ class Node:
     def getStatus(self):
         return (self.WKC, self.WQC, self.BKC, self.BKC)
 
+    def getParent(self):
+        return self.parent
 
 # TESTING & DEBUGGING
 
@@ -1050,7 +1075,6 @@ class Node:
 #    print(child)
 #    print("Status:")
 #    print(child.getStatus())
-
 
 
 

@@ -6,7 +6,7 @@ import re
 import pickle
 
 class Player():
-    def __init__(self, node, cnn, color, depth=1, breadth=1):
+    def __init__(self, node, cnn, color="White", depth=1, breadth=1):
         self.tree = node
         self.cnn = cnn
 
@@ -111,16 +111,16 @@ class Player():
                     print("first, select a square")
                 
     def myTurn(self, tree, depth, breadth):
-        index = self.minimax(tree, depth, self.isMaximizer)
+        index = self.minimax(tree, depth, self.isMaximizer, -1, 2)
         children = tree.getChildren()
 
         print(index)
 
-        self.tree = children[index[0]]                      # minimax return index... orrr?****START HERE
+        self.tree = children[index[0]]                      #minimax return index
         print(self.tree)
 
     # searches for optimally evaluated move - returns a tuple of (index, value)
-    def minimax(self, node, depth, isMaximizer, nodeIndex=-1):                   # alpha beta pruning***
+    def minimax(self, node, depth, isMaximizer, nodeIndex=-1, alpha, beta):                   # alpha beta pruning***
         # if node not created children yet (first traversal)
         if not node.getChildren():
             node.createChildren()
@@ -134,44 +134,62 @@ class Player():
             return (nodeIndex, [0.5])
         
         if isMaximizer:
+            # declare variable to track largest value seen
+            bestVal = -1
+
             # get children values and store highest
             lines = self.getPredictions(node)
 
             x = 0
             value = (0, -1)
-            # for # of lines specified in breadth
-            while x < self.breadth and len(lines):
+            # for # of lines specified in breadth  &&  for # lines
+            while x < self.breadth and x < len(lines):
                 x += 1
 
                 # find and replace most promising line
                 best = max(lines)
                 index = lines.index(best)
-                lines[index] = 0                            # subtitute current max with lowest eval    
+                lines[index] = -1                            # subtitute current max with lowest eval    
 
                 # store highest value & index of most promising lines
-                proxy = self.minimax(node.getChildren()[index], depth-1, False, nodeIndex=index)
+                proxy = self.minimax(node.getChildren()[index], depth-1, False, nodeIndex=index, alpha, beta)
                 if value[1] < proxy[1]:
                     value = proxy
 
+                # calculate alpha & break if higher level minimizer has lower option            ***(new alpha-beta)
+                bestVal = max(bestVal, proxy[1])
+                alpha = max(alpha, bestVal)
+                if beta <= alpha:
+                    break
+
         else:
+            # declare variable to track smallest value seen
+            bestVal = 2
+
             # get children values and store highest
             lines = self.getPredictions(node)
 
             x = 0
             value = (0, 2)
-            # for # of lines specified in breadth
-            while x < self.breadth and len(lines):
+            # for # of lines specified in breadth  &&  for # lines
+            while x < self.breadth and x < len(lines):
                 x += 1
 
                 # find and remove most promising line
                 best = min(lines)
                 index = lines.index(best)
-                lines[index] = 1                            # subtitute current min with highest eval
+                lines[index] = 2                            # subtitute current min with highest eval
 
                 # store lowest value & index of most promising lines
-                proxy = self.minimax(node.getChildren()[index], depth-1, True, nodeIndex=index)
+                proxy = self.minimax(node.getChildren()[index], depth-1, True, nodeIndex=index, alpha, beta)
                 if value[1] > proxy[1]:
                     value = proxy
+
+                # calculate beta & break if higher level maximizer has higher option            ***(new alpha-beta)
+                bestVal = min(bestVal, proxy[1])
+                beta = min(beta, bestVal)
+                if beta <= alpha:
+                    break
         
         # return own index unless initializing method call
         if nodeIndex == -1:
@@ -195,10 +213,13 @@ class Player():
     def isMate(self, node):                     # assumes node already created children
         isMate = False
 
-        children = node.getChildren()
+        children = node.getChildren()           
+        if not children:                        # if children not already created
+            node.createChildren()
+            children = node.getChildren()
 
         if not children:                        # if leaf node & in check
-            if node.inCheck(node.getBoard()):
+            if node.inCheck():
                 isMate = True
 
         return isMate
@@ -206,7 +227,10 @@ class Player():
     def isStalemate(self, node):                # assumes node already created children
         isStalemate = False
 
-        children = node.getChildren()
+        children = node.getChildren()           
+        if not children:                        # if children not already created
+            node.createChildren()
+            children = node.getChildren()
 
         if not children:                        # if leaf node & not in check
             if not node.inCheck():
@@ -262,12 +286,45 @@ def initialBoard():
 
     return board
 
+# Play Script
+
+# board = initialBoard()
+# game = Node.Node(board)
+
+# network = 0
+# network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
+# network = network.cpu()
+
+# player = Player(game, network, "White", 6, 3)
+# player.play()
+
+# # Debug Script
+# import DataAlteration
+# import PredictionVisualization
+
+#     # create boardstate that casused error
+# str_board = "BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,E,BP,BP,BP,E,E,E,E,E,E,E,E,E,E,E,E,BP,E,E,E,E,E,E,E,E,E,WP,E,E,E,E,E,E,E,E,E,WP,WP,WP,WP,WP,WP,E,WP,WR,WN,WB,WQ,WK,WB,WN,WR,W"
+# board = DataAlteration.stringToBoard(str_board)
+
+    # create starting boardstate
 board = initialBoard()
+board[0:12, 0, 3] = 0
+board[0:12, 1, 4] = 0
+## board[0:12, 6, 2] = 0
+board[0:12, 6, 3] = 0
+board[0:12, 7, 6] = 0
+board[7, 2, 5] = 1
+board[11, 3, 4] = 1
+## board[5, 4, 2] = 1
+board[5, 5, 3] = 1
+
 game = Node.Node(board)
-network = 0
-with open(r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5.cnn', 'rb') as file:
-    network = pickle.load(file)
-    network = network.cpu()
+
+print(game)
+
+network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
+network = network.cuda()                                                               # GPU compatible
+
 player = Player(game, network, "White", 3, 3)
 player.play()
 

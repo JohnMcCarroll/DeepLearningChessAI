@@ -120,7 +120,7 @@ class Player():
         print(self.tree)
 
     # searches for optimally evaluated move - returns a tuple of (index, value)
-    def minimax(self, node, depth, isMaximizer, nodeIndex=-1, alpha, beta):                   # alpha beta pruning***
+    def minimax(self, node, depth, isMaximizer, alpha, beta, nodeIndex=-1):                   # alpha beta pruning***
         # if node not created children yet (first traversal)
         if not node.getChildren():
             node.createChildren()
@@ -152,7 +152,7 @@ class Player():
                 lines[index] = -1                            # subtitute current max with lowest eval    
 
                 # store highest value & index of most promising lines
-                proxy = self.minimax(node.getChildren()[index], depth-1, False, nodeIndex=index, alpha, beta)
+                proxy = self.minimax(node.getChildren()[index], depth-1, False, alpha, beta, nodeIndex=index)
                 if value[1] < proxy[1]:
                     value = proxy
 
@@ -181,7 +181,7 @@ class Player():
                 lines[index] = 2                            # subtitute current min with highest eval
 
                 # store lowest value & index of most promising lines
-                proxy = self.minimax(node.getChildren()[index], depth-1, True, nodeIndex=index, alpha, beta)
+                proxy = self.minimax(node.getChildren()[index], depth-1, True, alpha, beta, nodeIndex=index)
                 if value[1] > proxy[1]:
                     value = proxy
 
@@ -335,3 +335,4 @@ player.play()
         # changing minimax lines list index by removing items **?
 # alpha beta pruning for minimax
 # GPU tensor calculations
+# generalize colors so can play as White & black

@@ -123,14 +123,13 @@ class TrainingData (torch.utils.data.Dataset):
                         # change to str board
                         stringBoard = self.boardToString(board)
 
-                        # debugging two piece one square bug:***
-                        if stringBoard == None:
-                            print(line)
-                            print(field)
-                            print(pieceType)
-                            print(moveRow)
-                            print(moveCol)
-                            input()
+                        # # debugging two piece one square bug:***
+                        # if stringBoard == None:
+                        #     with open(r'D:\Machine Learning\data_debug.txt', 'a') as file:
+                        #         file.write(line)
+                        #         file.write(field)
+                        #         file.write(pieceType)
+                        #         file.write('\n')
 
                         #store board state
                         if stringBoard in self.dataset:
@@ -644,8 +643,8 @@ class TrainingData (torch.utils.data.Dataset):
 db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
 # store hashtable dataset
-# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'wb') as file:
-#     pickle.dump(db.dataset, file)
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'wb') as file:
+    pickle.dump(db.dataset, file)
 
 data = db.dataset
 print(data[None])
@@ -656,3 +655,6 @@ print(data[None])
 # no two piece errors in Test PGN
 # None errors in main DB
 # *might not need stringboard?
+
+
+# USE data_debug.txt problem games to debug issues with file parser***

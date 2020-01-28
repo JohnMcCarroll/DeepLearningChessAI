@@ -151,13 +151,15 @@ def averageResults(data, index):
     newDataset = list()
 
     # calculate probabilities
-    for index in range(start, end):
+    for index in keys:                                       # range(start, end):     ***altered to do whole table
         # convert to tensor rep of board
-        board = stringToBoard(keys[index])
+        board = stringToBoard(index)
         # add new pair to new dataset
-        newDataset.append((board, statistics.mean(data[keys[index]])))
+        newDataset.append((board, statistics.mean(data[index])))
         # remove old pair from dataset
-        del data[keys[index]]
+        del data[index]
+        # garbage collect
+        gc.collect()
 
     print("altered data")
     return newDataset  
@@ -208,19 +210,19 @@ def stringToBoard(stringBoard):
 # data alterations
 
 
-# with open(r'D:\ChessEngine\DeepLearningChessAI\Data\hashtableDataset\hashtableDataset.db', 'rb') as file:
-#     data = pickle.load(file)
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'rb') as file:
+    data = pickle.load(file)
 
-# del data[None]
+del data[None]
 
 # for i in range(0, 32):
 
-#     table = averageResults(data, i)
+table = averageResults(data, 0)
 
-#     gc.collect()                                                            # induce garbage collection to free space before save
+gc.collect()                                                            # induce garbage collection to free space before save
 
-#     with open(r'D:\ChessEngine\DeepLearningChessAI\Data\prob_dataset' + str(i) + '.db', 'wb') as file:
-#         pickle.dump(table, file)
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_dataset' + str(0) + '.db', 'wb') as file:
+    pickle.dump(table, file)
 
 
 # data combinations

@@ -5,6 +5,8 @@ import torch.utils.data
 import numpy as np
 import random
 import pickle
+import statistics
+import gc
 
 """
     TrainingData
@@ -18,7 +20,7 @@ class TrainingData (torch.utils.data.Dataset):
         try:
             # set instance variables
             self.dataset = dict()           # dataset
-            self.channels = dict()      # piece type hashtable
+            self.channels = dict()          # piece type hashtable
             self.channels['WK'] = 0
             self.channels['WQ'] = 1
             self.channels['WR'] = 2
@@ -31,6 +33,7 @@ class TrainingData (torch.utils.data.Dataset):
             self.channels['BB'] = 9
             self.channels['BN'] = 10
             self.channels['BP'] = 11
+
             # open training data file
             file = open(filePath, 'r', 1, encoding='utf-8')
             result = ""
@@ -76,7 +79,7 @@ class TrainingData (torch.utils.data.Dataset):
                     if stringBoard in self.dataset:                                         #store starting board state
                         self.dataset[stringBoard] = self.dataset[stringBoard] + [result]
                     else:
-                        self.dataset[stringBoard] = [result]            
+                        self.dataset[stringBoard] = [result]
 
                     # set prevColor for color determination
                     prevColor = 'B'
@@ -131,11 +134,13 @@ class TrainingData (torch.utils.data.Dataset):
                         #         file.write(pieceType)
                         #         file.write('\n')
 
-                        #store board state
-                        if stringBoard in self.dataset:
-                            self.dataset[stringBoard] = self.dataset[stringBoard] + [result]
-                        else:
-                            self.dataset[stringBoard] = [result]
+                        # filter for messed up boards:
+                        if stringBoard != None:
+                            # store board state
+                            if stringBoard in self.dataset:
+                                self.dataset[stringBoard] = self.dataset[stringBoard] + [result]
+                            else:
+                                self.dataset[stringBoard] = [result]
 
         except Exception as e:
             print("The whole thing went wonky")
@@ -638,23 +643,144 @@ class TrainingData (torch.utils.data.Dataset):
 
         return string
 
+    def stringToBoard(self, stringBoard):
+        # initialize board state tensor
+        board = torch.zeros([14, 8, 8])
+
+        # set turn
+        if stringBoard[-1] == "B":
+            board[12:14, :, :] = 1
+
+        # place pieces
+        boardFields = stringBoard.split(",")
+        for index in range(0,64):
+            col = index % 8
+            row = int(index / 8)
+
+            if boardFields[index] == "E":
+                continue
+            elif boardFields[index] == "WK":
+                board[0, row, col] = 1
+            elif boardFields[index] == "WQ":
+                board[1, row, col] = 1
+            elif boardFields[index] == "WR":
+                board[2, row, col] = 1
+            elif boardFields[index] == "WB":
+                board[3, row, col] = 1
+            elif boardFields[index] == "WN":
+                board[4, row, col] = 1
+            elif boardFields[index] == "WP":
+                board[5, row, col] = 1
+            elif boardFields[index] == "BK":
+                board[6, row, col] = 1
+            elif boardFields[index] == "BQ":
+                board[7, row, col] = 1
+            elif boardFields[index] == "BR":
+                board[8, row, col] = 1
+            elif boardFields[index] == "BB":
+                board[9, row, col] = 1
+            elif boardFields[index] == "BN":
+                board[10, row, col] = 1
+            elif boardFields[index] == "BP":
+                board[11, row, col] = 1
+        
+        return board
+
+    def averageResults(self):
+
+        keys = list(self.dataset.keys())
+
+        # calculate probabilities
+        for index in keys:
+            # calc average
+            avg = statistics.mean(self.dataset[index])
+            # reassign kvp
+            self.dataset[index] = avg
+
+        print("altered data")
+
+    def dictToList(self):
+        self.dataset = [(k, v) for k, v in self.dataset.items()]
+
 
 # Create TrainingData object, parsing through PGN file
 db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
+gc.collect()
+
 
 # store hashtable dataset
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'wb') as file:
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.db', 'wb') as file:
+    pickle.dump(db.dataset, file)
+gc.collect()
+
+
+# data alteration
+db.averageResults()
+gc.collect()
+
+
+# store hashtable dataset
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetB.db', 'wb') as file:
+    pickle.dump(db.dataset, file)
+gc.collect()
+
+
+# convert string to tensor
+# keys = db.dataset.keys()
+# print(type(keys))
+
+while True:
+    # get list of keys that are still str
+    keys = list({k:v for k,v in db.dataset.items() if type(k) == str})
+    # take first str key...
+    key = keys[0]
+    # convert str to tensor
+    tensorBoard = db.stringToBoard(key)
+    # store tensor-double kvp
+    db.dataset[tensorBoard] = db.dataset[key]
+    # delete str
+    del db.dataset[key]
+
+    # break when out of str keys
+    if len(keys) <= 1:
+        break
+
+gc.collect()
+
+
+# store hashtable dataset
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetC.db', 'wb') as file:
+    pickle.dump(db.dataset, file)
+gc.collect()
+
+
+db.dictToList()
+gc.collect()
+
+
+# store hashtable dataset
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetD.db', 'wb') as file:
     pickle.dump(db.dataset, file)
 
-data = db.dataset
-print(data[None])
+
+# seeing data
+with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetD.db', 'rb') as file:
+    data = pickle.load(file)
+
+for key in data:
+    print(key[0])
+    print(key[1])
+    print()
+    input()
+
+
 
 
 ### Learned:
 # CASE: midle of game missing, resulting in pieces overlapping
 # no two piece errors in Test PGN
 # None errors in main DB
-# *might not need stringboard?
+# *might need stringboard
 
 
 # USE data_debug.txt problem games to debug issues with file parser***

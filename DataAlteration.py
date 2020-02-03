@@ -155,7 +155,7 @@ def averageResults(data, index):
         # convert to tensor rep of board
         board = stringToBoard(index)
         # add new pair to new dataset
-        newDataset.append((board, statistics.mean(data[index])))
+        newDataset.append((board, statistics.mean(data[index]))) 
         # remove old pair from dataset
         del data[index]
         # garbage collect
@@ -218,6 +218,9 @@ del data[None]
 # for i in range(0, 32):
 
 table = averageResults(data, 0)
+
+#### shoul dof dereferenced data & prolly not used pickle and use debug
+data = 0
 
 gc.collect()                                                            # induce garbage collection to free space before save
 

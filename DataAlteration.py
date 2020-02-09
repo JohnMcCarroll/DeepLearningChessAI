@@ -208,7 +208,7 @@ def stringToBoard(stringBoard):
     return board
 
 # data alterations
-
+"""
 
 with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'rb') as file:
     data = pickle.load(file)
@@ -226,7 +226,7 @@ gc.collect()                                                            # induce
 
 with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_dataset' + str(0) + '.db', 'wb') as file:
     pickle.dump(table, file)
-
+"""
 
 # data combinations
 

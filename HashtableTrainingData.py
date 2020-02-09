@@ -4,9 +4,11 @@ import torch
 import torch.utils.data
 import numpy as np
 import random
-import pickle
+# import pickle
+import joblib
 import statistics
 import gc
+
 
 """
     TrainingData
@@ -702,33 +704,30 @@ class TrainingData (torch.utils.data.Dataset):
     def dictToList(self):
         self.dataset = [(k, v) for k, v in self.dataset.items()]
 
+    def writeDataToFile(self, filepath):
+        if type(filepath) is str:
+            with open(filepath, 'a') as file:
+                for key in self.dataset.keys():
+                    file.write(key + " ~ " + str(self.dataset[key]) + "\n")
 
 # Create TrainingData object, parsing through PGN file
 db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 gc.collect()
-
-
-# store hashtable dataset
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.db', 'wb') as file:
-    pickle.dump(db.dataset, file)
-gc.collect()
-
+print("done parsing PGN")
 
 # data alteration
 db.averageResults()
 gc.collect()
+print("averaged results")
 
-
-# store hashtable dataset
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetB.db', 'wb') as file:
-    pickle.dump(db.dataset, file)
+# write hashtable dataset to file
+db.writeDataToFile(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt')
 gc.collect()
+print("stored version A")
 
-
+### THIS CODE WILL BE USED FOR READING DATA FROM FILE***
+"""
 # convert string to tensor
-# keys = db.dataset.keys()
-# print(type(keys))
-
 while True:
     # get list of keys that are still str
     keys = list({k:v for k,v in db.dataset.items() if type(k) == str})
@@ -746,41 +745,37 @@ while True:
         break
 
 gc.collect()
+print("done converting keys from str to tensor")
+"""
 
 
-# store hashtable dataset
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetC.db', 'wb') as file:
-    pickle.dump(db.dataset, file)
-gc.collect()
-
-
-db.dictToList()
-gc.collect()
-
-
-# store hashtable dataset
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetD.db', 'wb') as file:
-    pickle.dump(db.dataset, file)
-
-
+"""
 # seeing data
 with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetD.db', 'rb') as file:
-    data = pickle.load(file)
+    data = joblib.load(file)
 
 for key in data:
     print(key[0])
     print(key[1])
     print()
     input()
-
-
+"""
 
 
 ### Learned:
 # CASE: midle of game missing, resulting in pieces overlapping
 # no two piece errors in Test PGN
 # None errors in main DB
-# *might need stringboard
+# need stringboard for sorting of unique positions
+# need to write/read data from file directly (serialization double size on stack)
 
 
 # USE data_debug.txt problem games to debug issues with file parser***
+
+# UNIFIED DATA:
+# decided to store str representation of board in file that's being written. storing each value of tensor is redundant given that
+# most values will be zero and will not result in significant reading run time efficiency gain. 
+# Need: 
+# - formal method to store data. {done}
+# - formal method to read the data and prep it for training loop
+# - full dataset stored in one file on HDD {done}

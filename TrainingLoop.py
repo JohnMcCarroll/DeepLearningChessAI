@@ -11,31 +11,39 @@ import matplotlib.pyplot as plt
 import time
 import gc
 import os
+import linecache
 
+# define functions
+def parseLine(line, dataset):
+    fields = line.split(" ~ ")
+    tensorBoard = Data.stringToBoard(fields[0])
+    dataset.append((tensorBoard, float(fields[1])))
 
 # setup
+    # initialize hyperparameters & variables
+batchSize = 190000
+learningRate = 0.0001
+epoch = 3
+subepoch = 20
+test_set_size = 1000
 datasetFilepath = r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt'
-    # loading in network and data
+dataset = list()
+test_set = list()
 
+    # loading in network and data
     # Creates new network
 network = CNN.CNN().cuda()
 
-    # Reads in dataset
-dataset = list()
+    # partition a test set
+datasetSize = 0
 with open(datasetFilepath, 'r') as file:
-    for line in file:
-        fields = line.split(" ~ ")
-        tensorBoard = Data.stringToBoard(fields[0])
-        dataset.append((tensorBoard, float(fields[1])))
+    for i, line in enumerate(file):
+        if i < test_set_size:
+            parseLine(line, test_set)
+        datasetSize = i
 
-# partition a test set
-test_set = dataset[-1000:]
-train_set = dataset[0:(len(dataset)-1000)]
-
-    # initialize hyperparameters
-batchSize = 100
-learningRate = 0.0001
-epoch = 3
+    # establish length of subepochs
+subepochSize = int(datasetSize + 1 / subepoch)
 
     # init optimizer
 optimizer = optim.Adam(network.parameters(), learningRate)
@@ -43,7 +51,7 @@ optimizer = optim.Adam(network.parameters(), learningRate)
 # organize data
 
     # train data
-train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
+# train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
 train_losses = list()
 
     # setting up test data
@@ -66,29 +74,41 @@ test_losses = list()
 
 for epoch in range(epoch):
 
-    for batch in train_loader:
+    for subepoch in range(subepoch):
+        # set up partition of dataset as train_set
+        train_set = list()
+        with open(datasetFilepath, 'r') as file:
+            for i, line in enumerate(file):
+                if test_set_size + subepochSize*subepoch <= i and i < subepochSize*(subepoch + 1) + test_set_size:
+                    parseLine(line, train_set)
+                datasetSize = i
+        # create data_loader from train_set
+        train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
 
-        boards, results = batch
+        # train on subepoch
+        for batch in train_loader:
 
-        # converting type & reshaping
-        results = results.float().reshape([-1, 1]).cuda()       #switch to gpu
-        boards = boards.cuda()
+            boards, results = batch
 
-        # calculating loss
-        preds = network(boards)
-        loss = F.mse_loss(preds, results)
+            # converting type & reshaping
+            results = results.float().reshape([-1, 1]).cuda()       #switch to gpu
+            boards = boards.cuda()
 
-        train_losses.append(loss.item())    # store train loss for batch
+            # calculating loss
+            preds = network(boards)
+            loss = F.mse_loss(preds, results)
 
-        # calculating gradients
-        optimizer.zero_grad()   #clear out accumulated gradients
-        loss.backward()
-        optimizer.step() # updating weights
+            train_losses.append(loss.item())    # store train loss for batch
 
-        # benchmark if learning
-        test_preds = network(test_boards)
-        test_loss = F.mse_loss(test_preds, test_results)
-        test_losses.append(test_loss.item())
+            # calculating gradients
+            optimizer.zero_grad()   #clear out accumulated gradients
+            loss.backward()
+            optimizer.step() # updating weights
+
+            # benchmark if learning
+            test_preds = network(test_boards)
+            test_loss = F.mse_loss(test_preds, test_results)
+            test_losses.append(test_loss.item())
 
 plt.plot(test_losses)
 plt.ylabel('test loss')
@@ -109,5 +129,4 @@ gc.collect()
 # with open(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn', 'wb') as file:
 #    pickle.dump(network, file)
 
-torch.save(network, r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
-
+torch.save(network, r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5b.cnn')

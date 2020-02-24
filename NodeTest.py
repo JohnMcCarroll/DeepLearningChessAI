@@ -1,5 +1,11 @@
+from unittest import TestCase
+import unittest
 import torch
 import Node
+
+class TestNode(TestCase):
+    def test_minimax(self):
+        self.assertTrue(False)
 
 
 def promotion():
@@ -111,7 +117,8 @@ def capturePromo():
     for child in children:
         print(child)
 
-capturePromo()
+if __name__ == '__main__':
+    unittest.main()
 
 # BUGS:
 #

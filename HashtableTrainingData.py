@@ -710,56 +710,50 @@ class TrainingData (torch.utils.data.Dataset):
                 for key in self.dataset.keys():
                     file.write(key + " ~ " + str(self.dataset[key]) + "\n")
 
+
+# quick db size calculator
+def quantifyData(data):
+    count = 0
+    for key in data.keys():
+        if type(data[key]) is list:
+            count += len(data[key])
+            continue
+        else:
+            count += 1
+
+        
+    return count
+
+
 # Create TrainingData object, parsing through PGN file
 db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 gc.collect()
 print("done parsing PGN")
+
+print()
+print("Size of Dataset before averaging:")
+print("Keys:")
+print(len(db.dataset.keys()))
+print("Items:")
+print(quantifyData(db.dataset))
 
 # data alteration
 db.averageResults()
 gc.collect()
 print("averaged results")
 
-# write hashtable dataset to file
-db.writeDataToFile(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt')
-gc.collect()
-print("stored version A")
-
-### THIS CODE WILL BE USED FOR READING DATA FROM FILE***
-"""
-# convert string to tensor
-while True:
-    # get list of keys that are still str
-    keys = list({k:v for k,v in db.dataset.items() if type(k) == str})
-    # take first str key...
-    key = keys[0]
-    # convert str to tensor
-    tensorBoard = db.stringToBoard(key)
-    # store tensor-double kvp
-    db.dataset[tensorBoard] = db.dataset[key]
-    # delete str
-    del db.dataset[key]
-
-    # break when out of str keys
-    if len(keys) <= 1:
-        break
-
-gc.collect()
-print("done converting keys from str to tensor")
-"""
+print()
+print("Size of Dataset after averaging:")
+print("Keys:")
+print(len(db.dataset.keys()))
+print("Items:")
+print(quantifyData(db.dataset))
 
 
-"""
-# seeing data
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetD.db', 'rb') as file:
-    data = joblib.load(file)
-
-for key in data:
-    print(key[0])
-    print(key[1])
-    print()
-    input()
-"""
+# # write hashtable dataset to file
+# db.writeDataToFile(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt')
+# gc.collect()
+# print("stored version A")
 
 
 ### Learned:

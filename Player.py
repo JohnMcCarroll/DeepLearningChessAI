@@ -9,6 +9,7 @@ class Player():
     def __init__(self, node, cnn, color="White", depth=1, breadth=1):
         self.tree = node
         self.cnn = cnn
+        self.cnn.cuda()
 
         self.color = color
         self.turn = "White"
@@ -192,9 +193,7 @@ class Player():
                     break
         
         # return own index unless initializing method call
-        if nodeIndex == -1:
-            pass
-        else:
+        if nodeIndex != -1:
             value = (nodeIndex, value[1])
 
         return value
@@ -292,11 +291,12 @@ def initialBoard():
 # game = Node.Node(board)
 
 # network = 0
-# network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
-# network = network.cpu()
+# network = torch.load(r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5b.cnn')
+# network = network.cuda()
 
-# player = Player(game, network, "White", 6, 3)
+# player = Player(game, network, "White", 4, 4)
 # player.play()
+
 
 # # Debug Script
 # import DataAlteration
@@ -306,27 +306,27 @@ def initialBoard():
 # str_board = "BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,E,BP,BP,BP,E,E,E,E,E,E,E,E,E,E,E,E,BP,E,E,E,E,E,E,E,E,E,WP,E,E,E,E,E,E,E,E,E,WP,WP,WP,WP,WP,WP,E,WP,WR,WN,WB,WQ,WK,WB,WN,WR,W"
 # board = DataAlteration.stringToBoard(str_board)
 
-    # create starting boardstate
-board = initialBoard()
-board[0:12, 0, 3] = 0
-board[0:12, 1, 4] = 0
-## board[0:12, 6, 2] = 0
-board[0:12, 6, 3] = 0
-board[0:12, 7, 6] = 0
-board[7, 2, 5] = 1
-board[11, 3, 4] = 1
-## board[5, 4, 2] = 1
-board[5, 5, 3] = 1
+#     # create starting boardstate
+# board = initialBoard()
+# board[0:12, 0, 3] = 0
+# board[0:12, 1, 4] = 0
+# ## board[0:12, 6, 2] = 0
+# board[0:12, 6, 3] = 0
+# board[0:12, 7, 6] = 0
+# board[7, 2, 5] = 1
+# board[11, 3, 4] = 1
+# ## board[5, 4, 2] = 1
+# board[5, 5, 3] = 1
 
-game = Node.Node(board)
+# game = Node.Node(board)
 
-print(game)
+# print(game)
 
-network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
-network = network.cuda()                                                               # GPU compatible
+# network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
+# network = network.cuda()                                                               # GPU compatible
 
-player = Player(game, network, "White", 3, 3)
-player.play()
+# player = Player(game, network, "White", 3, 3)
+# player.play()
 
 
 ### DEBUGGING & IMPROVEMENTS

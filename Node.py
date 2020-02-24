@@ -1046,7 +1046,7 @@ class Node:
     def getParent(self):
         return self.parent
 
-# TESTING & DEBUGGING
+# DEBUGGING
 
     #with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
     #    val_set = pickle.load(file)

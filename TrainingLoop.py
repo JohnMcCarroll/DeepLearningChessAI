@@ -21,11 +21,11 @@ def parseLine(line, dataset):
 
 # setup
     # initialize hyperparameters & variables
-batchSize = 190000
+batchSize = 100
 learningRate = 0.0001
 epoch = 3
-subepoch = 20
-test_set_size = 1000
+subepoch = 50
+test_set_size = 20000
 datasetFilepath = r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt'
 dataset = list()
 test_set = list()
@@ -38,12 +38,13 @@ network = CNN.CNN().cuda()
 datasetSize = 0
 with open(datasetFilepath, 'r') as file:
     for i, line in enumerate(file):
+        # add datum to test_set
         if i < test_set_size:
             parseLine(line, test_set)
         datasetSize = i
 
     # establish length of subepochs
-subepochSize = int(datasetSize + 1 / subepoch)
+subepochSize = int((datasetSize + 1) / subepoch)
 
     # init optimizer
 optimizer = optim.Adam(network.parameters(), learningRate)
@@ -55,7 +56,7 @@ optimizer = optim.Adam(network.parameters(), learningRate)
 train_losses = list()
 
     # setting up test data
-test_loader = torch.utils.data.DataLoader(test_set, 1000)
+test_loader = torch.utils.data.DataLoader(test_set, test_set_size)
 test_boards, test_results = next(iter(test_loader))
 test_results = test_results.float().reshape([-1, 1]).cuda()     #switch to gpu
 test_boards = test_boards.cuda()
@@ -79,9 +80,14 @@ for epoch in range(epoch):
         train_set = list()
         with open(datasetFilepath, 'r') as file:
             for i, line in enumerate(file):
-                if test_set_size + subepochSize*subepoch <= i and i < subepochSize*(subepoch + 1) + test_set_size:
+                # break from loop once out of scope
+                if i >= subepochSize*(subepoch + 1) + test_set_size:
+                    break
+                
+                # add board position to train_set
+                if test_set_size + subepochSize*subepoch <= i:
                     parseLine(line, train_set)
-                datasetSize = i
+
         # create data_loader from train_set
         train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
 

@@ -121,7 +121,8 @@ class Player():
         print(self.tree)
 
     # searches for optimally evaluated move - returns a tuple of (index, value)
-    def minimax(self, node, depth, isMaximizer, alpha, beta, nodeIndex=-1):                   # alpha beta pruning***
+    # employs alpha beta pruning to speed up 
+    def minimax(self, node, depth, isMaximizer, alpha, beta, nodeIndex=-1):
         # if node not created children yet (first traversal)
         if not node.getChildren():
             node.createChildren()
@@ -287,16 +288,17 @@ def initialBoard():
 
 # Play Script
 
-# board = initialBoard()
-# game = Node.Node(board)
+board = initialBoard()
+game = Node.Node(board)
 
-# network = 0
-# network = torch.load(r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5b.cnn')
-# network = network.cuda()
+network = 0
+network = torch.load(r'D:\Machine Learning\DeepLearningChessAI\Networks\QualityControl.cnn')
+network = network.cuda()
 
-# player = Player(game, network, "White", 4, 4)
-# player.play()
+player = Player(game, network, "White", 4, 4)
+player.play()
 
+#############################################################################################################################################################
 
 # # Debug Script
 # import DataAlteration

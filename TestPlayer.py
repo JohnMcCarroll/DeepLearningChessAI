@@ -52,8 +52,7 @@ class TestPlayer(TestCase):
                                             0.4, 
                                             0.5, 
                                             0.9, 0.9, 0.9, 0.9, 0.9, 0.5, 0.2, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 
-                                            0.2,
-                                            0.95])
+                                            0.2])
 
         self.player = Player(self.node, self.cnn, breadth=2, depth=2)
         
@@ -62,7 +61,8 @@ class TestPlayer(TestCase):
         move = self.player.minimax(self.node, self.player.depth, True, -1, 2)
 
         self.assertEqual(5, move[0], "expected index 5")
-        self.assertEqual(0.4, move[1], "expected value of 0.4 (0.95 means alpha beta prune failed)")
+        self.assertEqual(0.4, move[1], "expected value of 0.4")
+        "if StopIteration error, alpha beta prune failed"
 
 
 

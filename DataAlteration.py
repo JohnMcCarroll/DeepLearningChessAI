@@ -207,26 +207,20 @@ def stringToBoard(stringBoard):
     
     return board
 
-# data alterations
+# data duplication of non-unique boardstates:
+"""
+originalDatasetPath = r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt'
+newDatasetPath = r'D:\Machine Learning\DeepLearningChessAI\Data\QualityDataset.txt'
+with open(newDatasetPath, 'a') as newFile:
+    with open(originalDatasetPath, 'r') as OGfile:
+        for line in OGfile:
+            fields = line.split(" ~ ")
+            value = float(fields[1])
+            if value != 0.0 and value != 1.0 and value != 0.5:
+                newFile.write(line)
 """
 
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDataset.db', 'rb') as file:
-    data = pickle.load(file)
 
-del data[None]
-
-# for i in range(0, 32):
-
-table = averageResults(data, 0)
-
-#### shoul dof dereferenced data & prolly not used pickle and use debug
-data = 0
-
-gc.collect()                                                            # induce garbage collection to free space before save
-
-with open(r'D:\Machine Learning\DeepLearningChessAI\Data\prob_dataset' + str(0) + '.db', 'wb') as file:
-    pickle.dump(table, file)
-"""
 
 # data combinations
 

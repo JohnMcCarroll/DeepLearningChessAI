@@ -21,12 +21,12 @@ def parseLine(line, dataset):
 
 # setup
     # initialize hyperparameters & variables
-batchSize = 100
+batchSize = 50
 learningRate = 0.0001
-epoch = 3
-subepoch = 50
-test_set_size = 20000
-datasetFilepath = r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt'
+epoch = 1
+subepoch = 10
+test_set_size = 10000
+datasetFilepath = r'D:\Machine Learning\DeepLearningChessAI\Data\QualityDataset.txt'
 dataset = list()
 test_set = list()
 
@@ -80,13 +80,13 @@ for epoch in range(epoch):
         train_set = list()
         with open(datasetFilepath, 'r') as file:
             for i, line in enumerate(file):
-                # break from loop once out of scope
-                if i >= subepochSize*(subepoch + 1) + test_set_size:
-                    break
-                
                 # add board position to train_set
                 if test_set_size + subepochSize*subepoch <= i:
                     parseLine(line, train_set)
+
+                # break from loop once out of scope
+                if i >= subepochSize*(subepoch + 1) + test_set_size:
+                    break
 
         # create data_loader from train_set
         train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
@@ -132,7 +132,4 @@ test_set = []
 gc.collect()
 
 # save network
-# with open(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn', 'wb') as file:
-#    pickle.dump(network, file)
-
-torch.save(network, r'D:\Machine Learning\DeepLearningChessAI\Networks\Skipper5b.cnn')
+torch.save(network, r'D:\Machine Learning\DeepLearningChessAI\Networks\QualityControl.cnn')

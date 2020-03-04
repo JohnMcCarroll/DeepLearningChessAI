@@ -21,9 +21,7 @@ class Node:
         self.BQC=True                           # Black Queenside Castle available
 
         self.parent = parent
-        self.children = list()                   # the set of all possible board states after next move
-
-        #self.value = 0                          # cnn eval of node's boardstate                          
+        self.children = list()                   # the set of all possible board states after next move                     
 
         # determine which color's turn
         if self.boardState[13, 0, 0] == 0:
@@ -39,53 +37,42 @@ class Node:
         if parent is not None:
             self.updateStatus(parent, self.boardState)
 
-        #debugging***
-        # if 0 == torch.nonzero(boardState[self.colorChannels[0], :, :]).nelement():
-        #     print("child:")
-        #     print(self)
-        #     print("parent:")
-        #     print(self.parent)
-        #     print("grandparent:")
-        #     print(self.parent.getParent())
-        #     print("great grandparent:")
-        #     print(self.parent.getParent().getParent())
-        #     print("great great grandparent:")
-        #     print(self.parent.getParent().getParent().getParent())
-
     def createChildren(self):
-        # clear children
-        self.children = []
+        # check if children not created
+        if not self.children:
+            # clear children
+            # self.children = []                                                                                # *** why is clear children needed?? ***
 
-        # iterate through each square on board seeing if piece of color resides there
+            # iterate through each square on board seeing if piece of color resides there
 
-        for channel in self.colorChannels:
-            # find piece locations
-            locations = torch.nonzero(self.boardState[channel, :, :])
+            for channel in self.colorChannels:
+                # find piece locations
+                locations = torch.nonzero(self.boardState[channel, :, :])
 
-            for coordinates in locations:
+                for coordinates in locations:
 
-                # identify piece and call helper method to generate all legal moves
+                    # identify piece and call helper method to generate all legal moves
 
-                if channel % 6 == 0:
-                    for move in self.kingMoves(self.boardState, coordinates):
-                        self.children.append(Node(move, self))                   
-                elif channel % 6 == 1:
-                    for move in self.queenMoves(self.boardState, coordinates):
-                        self.children.append(Node(move, self))
-                elif channel % 6 == 2:
-                    for move in self.rookMoves(self.boardState, coordinates):
-                        self.children.append(Node(move, self))
-                elif channel % 6 == 3:
-                    for move in self.bishopMoves(self.boardState, coordinates):
-                        self.children.append(Node(move, self))
-                elif channel % 6 == 4:
-                    for move in self.knightMoves(self.boardState, coordinates):
-                        self.children.append(Node(move, self))
-                elif channel % 6 == 5:
-                    for move in self.pawnMoves(self.boardState, coordinates):
-                        self.children.append(Node(move, self))
-                else:
-                    print(channel)
+                    if channel % 6 == 0:
+                        for move in self.kingMoves(self.boardState, coordinates):
+                            self.children.append(Node(move, self))                   
+                    elif channel % 6 == 1:
+                        for move in self.queenMoves(self.boardState, coordinates):
+                            self.children.append(Node(move, self))
+                    elif channel % 6 == 2:
+                        for move in self.rookMoves(self.boardState, coordinates):
+                            self.children.append(Node(move, self))
+                    elif channel % 6 == 3:
+                        for move in self.bishopMoves(self.boardState, coordinates):
+                            self.children.append(Node(move, self))
+                    elif channel % 6 == 4:
+                        for move in self.knightMoves(self.boardState, coordinates):
+                            self.children.append(Node(move, self))
+                    elif channel % 6 == 5:
+                        for move in self.pawnMoves(self.boardState, coordinates):
+                            self.children.append(Node(move, self))
+                    else:
+                        print(channel)
     
     def kingMoves(self, boardState, coordinates):
         moves = list()

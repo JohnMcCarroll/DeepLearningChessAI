@@ -2,13 +2,12 @@ import torch
 import pickle
 import copy
 import traceback
-
-# import PredictionVisualization
+import PredictionVisualization
 import sys
 
 class Node:
     def __init__(self, boardState, parent=None):
-        self.boardState = boardState.cuda()     # the position of the pieces, on GPU
+        self.boardState = boardState.cuda()     # the position of the pieces (GPU)
         self.color = ""                         # the color to move
 
         self.colorChannels = list()             # set of channels that house own color pieces
@@ -40,9 +39,6 @@ class Node:
     def createChildren(self):
         # check if children not created
         if not self.children:
-            # clear children
-            # self.children = []                                                                                # *** why is clear children needed?? ***
-
             # iterate through each square on board seeing if piece of color resides there
 
             for channel in self.colorChannels:
@@ -749,7 +745,7 @@ class Node:
         if coordinates == [-1, -1]:
             # get king's coordinates if no square specified
             try:
-                coordinates = torch.nonzero(boardState[self.colorChannels[0], :, :])[0]             # ***indexing issue - nonzero returned no coords... no king on board?***
+                coordinates = torch.nonzero(boardState[self.colorChannels[0], :, :])[0]
             except IndexError:
                 sys.exit()
 
@@ -1033,49 +1029,5 @@ class Node:
     def getParent(self):
         return self.parent
 
-# DEBUGGING
 
-    #with open(r'D:\Machine Learning\DeepLearningChessAI\small_val_set.db', 'rb') as file:
-    #    val_set = pickle.load(file)
-
-#testBoard = val_set[1][0]
-
-# move white pawn to be in capture range from black pawns
-#testBoard[0:12, 5, 3] = 0
-#testBoard[5, 4, 3] = 1
-#testBoard[0:12, 3, 2] = 0
-#testBoard[11, 4, 3] = 1
-
-#testBoard[12:14, :, :] = 0
-
-#print(testBoard)
-
-#node = Node(testBoard)
-
-#node.createChildren()
-#childNode = node.getChildren().pop()
-#print("childNode:")
-#print(len(node.getChildren()))
-#childNode.createChildren()
-
-#for child in childNode.getChildren():
-#    print(child)
-#    print("Status:")
-#    print(child.getStatus())
-
-
-
-            # break out linear & diag movement into own functions to reduce duplicate code {done}}}
-            # expand inCheck method function to check if ANY given square is under attack {done}}}
-            # fix pass by reference issue with more deepcopies {done}}}
-            # change whose turn it is {done}}}
-            # bug: spontaneous bishop generation {done}}}
-            # bug: no knight moves {done}}}
-            # bug: moving a second piece, but same color {done}}}
-            # bug: no pawn captures? {done}}}
-            # implement rook and king movement flags to help with castling rules / logic {done}}}
-            # implement en passant variable that will hold coordinates of vulnerable square for one turn after double pawn move {done}}}
-
-            # test: pawn promotion, castling, en passant, isolated piece moves?
-            # capture promotions
-# 3 fold repeat? 30 move draw? -> should those responsibilities lie in Player?... probably b/c involves game states
+# 3 fold repeat? 30 move draw? -> should those responsibilities lie in Player?

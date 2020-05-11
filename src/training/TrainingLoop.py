@@ -13,6 +13,8 @@ import gc
 import os
 import linecache
 
+### The TrainingLoop script loads or initializes a CNN and trains it for a specified number of epochs on a specified dataset
+
 # define functions
 def parseLine(line, dataset):
     fields = line.split(" ~ ")

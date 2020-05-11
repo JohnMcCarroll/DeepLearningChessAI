@@ -4,7 +4,7 @@ import statistics
 import gc
 import json
 
-# script to change data results from win/loss to win probability
+### A script used for quick data curation and manipulation (ie. calculating probabilities, removing samples, etc.)
 
 # assumes data is list and board is in string representation
 def probability(data):
@@ -249,8 +249,4 @@ for filename in os.listdir(r"D:\ChessEngine\DeepLearningChessAI\Data\prob_data")
 ### Next Steps:
 # compile hashtable data into list of (tensor, double) tuples
 # remove positions that only appeared once (eliminate binary bias)
-# add next move to data & CNN architecture
-
-# .numpy().tolist() - (155)
-# 'w' - (224)
-# json - (225)
+# add next move probabilities to data & CNN architecture

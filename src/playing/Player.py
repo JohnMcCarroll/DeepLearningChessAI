@@ -5,6 +5,11 @@ import copy
 import re
 import pickle
 
+"""
+    The Player class is the controller. It is responsible for maintaining the tree representation of the game (& game lines) and uses an instance
+    of a CNN to perform minimax searches on the game tree in order to select its next move.
+"""
+
 class Player():
     def __init__(self, node, cnn, color="White", depth=1, breadth=1):
         self.tree = node
@@ -23,7 +28,7 @@ class Player():
             self.opponentColorChannels = [6,7,8,9,10,11]
             self.isMaximizer = True
 
-        self.depth = depth              # might change to "difficulty" param
+        self.depth = depth
         self.breadth = breadth
 
     # initializes play loop of making move and accepting opponent move
@@ -41,7 +46,7 @@ class Player():
         else:
             print("White wins by CheckMate")
                 
-    # accepts input from user and moves piece        
+    # accepts input from user and moves piece (currently just commamnd line implementation)  
     def opponentTurn(self, tree):
         board = copy.deepcopy(tree.getBoard())
         tree.createChildren()
@@ -240,7 +245,7 @@ class Player():
 
     def is3Fold(self):
         return None
-        # check to see if draw by 3 fold                [*** not sure how this will implement, might take in node and list of indexes to check if repeating]
+        # check to see if draw by 3 fold                [might take in node and list of indexes to check if repeating]
 
     def nextTurn(self):
         if self.turn == "White":
@@ -331,10 +336,6 @@ player.play()
 # player.play()
 
 
-### DEBUGGING & IMPROVEMENTS
-        # list index out of range line 116 {done}}}
-        # fix checkmate / stalemate evaluation - crashed queen into d2 and was deemed a checkmate...{done}}}
-        # changing minimax lines list index by removing items **?
-# alpha beta pruning for minimax
-# GPU tensor calculations
+### IMPROVEMENTS
 # generalize colors so can play as White & black
+# simplify depth / breadth params to "difficulty" setting

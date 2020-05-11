@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+### The CNN class outlines the architecture of the NN used to evaluate each position
+
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()

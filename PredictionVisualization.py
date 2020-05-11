@@ -5,7 +5,7 @@ import pickle
 import TrainingData as data
 
 """
-    fun class to visualize board alongside a network's evaluation of the position - manual testing / confirmation
+    fun class to visualize board alongside a network's evaluation of the position - manual testing / sanity checking
 """
 
 def displayBoard(board):
@@ -70,5 +70,3 @@ def displayBoard(board):
 #     print(pred)
 
 #     input()
-
-# fun class to visualize board alongside a network's evaluation of the position - manual testing / confirmation

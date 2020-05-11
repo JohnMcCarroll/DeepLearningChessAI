@@ -4,7 +4,7 @@ import torch
 import torch.utils.data
 import numpy as np
 import random
-# import pickle
+import pickle
 import joblib
 import statistics
 import gc
@@ -42,7 +42,7 @@ class TrainingData (torch.utils.data.Dataset):
             meetsCriteria = False
             isStandard = True
 
-            # parse through file, collecting positions / result from games that meet criteria (no time or abandonment wins...)
+            # parse through file, collecting positions & result from games that meet criteria (no time or abandonment wins...)
             for line in file:
                 fields = line.split(" ")
                 # reset flags between games:
@@ -124,17 +124,8 @@ class TrainingData (torch.utils.data.Dataset):
                         elif pieceType[1] == "P":
                             board = self.pawnMove(board, pieceType, moveRow, moveCol, pieceLoc, location, color, promotion)
 
-
                         # change to str board
                         stringBoard = self.boardToString(board)
-
-                        # # debugging two piece one square bug:***
-                        # if stringBoard == None:
-                        #     with open(r'D:\Machine Learning\data_debug.txt', 'a') as file:
-                        #         file.write(line)
-                        #         file.write(field)
-                        #         file.write(pieceType)
-                        #         file.write('\n')
 
                         # filter for messed up boards:
                         if stringBoard != None:
@@ -145,7 +136,7 @@ class TrainingData (torch.utils.data.Dataset):
                                 self.dataset[stringBoard] = [result]
 
         except Exception as e:
-            print("The whole thing went wonky")
+            print("Sample creation failed :(")
             print(e)
 
     def __getitem__(self, index):
@@ -754,17 +745,6 @@ print(quantifyData(db.dataset))
 # db.writeDataToFile(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt')
 # gc.collect()
 # print("stored version A")
-
-
-### Learned:
-# CASE: midle of game missing, resulting in pieces overlapping
-# no two piece errors in Test PGN
-# None errors in main DB
-# need stringboard for sorting of unique positions
-# need to write/read data from file directly (serialization double size on stack)
-
-
-# USE data_debug.txt problem games to debug issues with file parser***
 
 # UNIFIED DATA:
 # decided to store str representation of board in file that's being written. storing each value of tensor is redundant given that

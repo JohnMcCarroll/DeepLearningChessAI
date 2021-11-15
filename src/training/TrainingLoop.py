@@ -28,8 +28,7 @@ learningRate = 0.0001
 epoch = 1
 subepoch = 10
 test_set_size = 10000
-# datasetFilepath = r'D:\Machine Learning\DeepLearningChessAI\Data\QualityDataset.txt'
-datasetFilepath = r'games.pgn'
+datasetFilepath = r'games.txt'
 dataset = list()
 test_set = list()
 
@@ -92,7 +91,8 @@ for epoch in range(epoch):
                     break
 
         # create data_loader from train_set
-        train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
+        if train_set:
+            train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
 
         # train on subepoch
         for batch in train_loader:
@@ -135,4 +135,4 @@ test_set = []
 gc.collect()
 
 # save network
-torch.save(network, r'D:\Machine Learning\DeepLearningChessAI\Networks\QualityControl.cnn')
+torch.save(network, r'BetaZero.cnn')

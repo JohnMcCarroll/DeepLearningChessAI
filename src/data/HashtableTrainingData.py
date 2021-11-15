@@ -712,7 +712,6 @@ def quantifyData(data):
         else:
             count += 1
 
-        
     return count
 
 
@@ -741,15 +740,15 @@ print("Items:")
 print(quantifyData(db.dataset))
 
 
-# # write hashtable dataset to file
-# db.writeDataToFile(r'D:\Machine Learning\DeepLearningChessAI\Data\hashtableDatasetA.txt')
-# gc.collect()
-# print("stored version A")
+# write hashtable dataset to file
+db.writeDataToFile(r'games.txt')
+gc.collect()
+
 
 # UNIFIED DATA:
 # decided to store str representation of board in file that's being written. storing each value of tensor is redundant given that
-# most values will be zero and will not result in significant reading run time efficiency gain. 
-# Need: 
+# most values will be zero and will not result in significant reading run time efficiency gain.
+# Need:
 # - formal method to store data. {done}
 # - formal method to read the data and prep it for training loop
 # - full dataset stored in one file on HDD {done}

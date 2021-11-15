@@ -20,45 +20,42 @@ Set up a virtual environment:
 ```buildoutcfg
 $ python -m venv .
 ```
+
 Activate your new virtual environment. This command is platform dependent, but for Linux it reads:
 ```buildoutcfg
 $ source bin/activate 
 ```
+
 Install dependencies:
 ```buildoutcfg
 $ pip install -r requirements.txt
 ```
 
-Retrieve Data from Chess.com:
-Curate Data:
-Train Neural Network:
-Play a game:
-
-- okay need to figure out data alteration step
-- get full training loop
-- get play loop running
-
-
-
-
-
-
-
-
-
-
-Run training with a plastic ResNet:
+Retrieve Data from Chess.com (this may take a while):
 ```buildoutcfg
-$ python research/shuffle/Gymnasium.py
+$ python src/data/DataRetrieval.py
 ```
 
-### Results
+Curate Data:
+```buildoutcfg
+$ python src/data/HashtableTraining.py
+```
 
-After a few iterations on the idea, which are encapsulated in the "path", "sequential", and "shuffle" directories
-and several experiment assays, it became clear that training time and performance were not significantly improved
-compared to the state of the art alternative, ResNet, of similar depth. All tests involved training and inference on the CIFAR-10.
-Although I feel there might be more work to do to exhaust this topic, it is my hypothesis that perhaps when operating in such a high
-dimensional space as the paths and parameters of a ResNet, there is no need to manually manage connections
-between blocks. When there's always room for further improvement (always a direction down the gradient), given high 
-dimensionality, one can reach similar performance by training longer as opposed to manually pruning and adding new paths.
-Essentially, the scale of the network mitigated the benefits of neuroplastic architecture search.
+Train a Neural Network:
+```buildoutcfg
+$ python src/training/TrainingLoop.py
+```
+
+Begin a game against an AI Opponent:
+```buildoutcfg
+$ python src/playing/Player.py
+```
+
+The AI will begin with the white pieces and make its first move. It selects its move from the results of
+a minimax tree search of the game space (the set of all possible future moves). The tree search
+is completed to a fixed depth and breadth, which can be adjusted within the Player.py script.
+The value of each board state used in the search is generated via inference from the 
+trained CNN. The values are an approximate probability of White's chance of winning, based on the frequency
+observed in our Chess.com dataset.
+
+

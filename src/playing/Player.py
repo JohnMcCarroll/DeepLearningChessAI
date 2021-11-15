@@ -297,7 +297,7 @@ board = initialBoard()
 game = Node.Node(board)
 
 network = 0
-network = torch.load(r'D:\Machine Learning\DeepLearningChessAI\Networks\QualityControl.cnn')
+network = torch.load(r'BetaZero.cnn')
 network = network.cuda()
 
 player = Player(game, network, "White", 4, 4)

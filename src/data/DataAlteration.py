@@ -178,11 +178,6 @@ def stringToBoard(stringBoard):
         col = index % 8
         row = int(index / 8)
 
-        ####### WTF ########
-        print(index)
-        print(boardFields)
-        print()
-
         if boardFields[index] == "E":
             continue
         elif boardFields[index] == "WK":

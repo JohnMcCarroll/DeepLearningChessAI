@@ -1,0 +1,6 @@
+torch
+numpy
+joblib
+requests
+torchvision
+matplotlib

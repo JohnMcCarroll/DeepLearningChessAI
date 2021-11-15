@@ -26,7 +26,7 @@ for username in GMs.split(","):
             archive = archive.strip("\"")
             print('archive: ' + archive)
             games = requests.get(archive  + "/pgn")
-            open("D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMsTest.pgn", 'ab').write(games.content)
+            open("games.pgn", 'ab').write(games.content)
     else: 
         time.sleep(15)
         print('sleepytime')

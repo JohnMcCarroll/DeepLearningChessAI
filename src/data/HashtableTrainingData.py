@@ -717,7 +717,7 @@ def quantifyData(data):
 
 
 # Create TrainingData object, parsing through PGN file
-db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
+db = TrainingData(r'games.pgn')
 gc.collect()
 print("done parsing PGN")
 

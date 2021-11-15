@@ -3,10 +3,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torchvision
 import torchvision.transforms as transforms
-import DataAlteration as Data
+import src.data.DataAlteration as Data
 import numpy as np
 import pickle
-import CNN
+import src.playing.CNN as CNN
 import matplotlib.pyplot as plt
 import time
 import gc
@@ -28,7 +28,8 @@ learningRate = 0.0001
 epoch = 1
 subepoch = 10
 test_set_size = 10000
-datasetFilepath = r'D:\Machine Learning\DeepLearningChessAI\Data\QualityDataset.txt'
+# datasetFilepath = r'D:\Machine Learning\DeepLearningChessAI\Data\QualityDataset.txt'
+datasetFilepath = r'games.pgn'
 dataset = list()
 test_set = list()
 

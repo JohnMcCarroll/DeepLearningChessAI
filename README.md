@@ -1,4 +1,4 @@
-#Deep Learning Chess Player
+# Deep Learning Chess Player
 
 I applied the modern tool of Deep Learning to the classic game of Chess.
 

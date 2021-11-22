@@ -31,6 +31,8 @@ Install dependencies:
 $ pip install -r requirements.txt
 ```
 
+### Data
+
 Retrieve Data from Chess.com (this may take a while):
 ```buildoutcfg
 $ python src/data/DataRetrieval.py
@@ -40,6 +42,8 @@ Curate Data:
 ```buildoutcfg
 $ python src/data/HashtableTraining.py
 ```
+
+### Training and Play
 
 Train a Neural Network:
 ```buildoutcfg

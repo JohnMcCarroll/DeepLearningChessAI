@@ -3,12 +3,11 @@
 I applied the modern tool of Deep Learning to the classic game of Chess.
 
 I was originally inspired to pursue Software Engineering by the amazing achievement of DeepMind
-in creating Alpha Zero, which mastered the three great strategy games, Chess, Go, and Shogi, using the
+in creating AlphaZero, which mastered the three great strategy board games, Chess, Go, and Shogi, using the
 same innovative reinforcement learning algorithm. As a lifelong Chess player, I was amazed at the intelligence
 of a system capable of outperforming the world's best, hand-crafted chess AI (Stockfish) after just 8 hours of self play.
 As a lifelong Chess enthusiast, it had been a goal of mine to create a Deep Learning Chess Player, ever
-since I started learning to code. This project stands as a fond milestone in my 
-development.
+since I started learning to code. This project stands as a fond milestone in my development.
 
 ### Setup
 

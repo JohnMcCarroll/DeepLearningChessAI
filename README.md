@@ -15,7 +15,8 @@ Clone the repo to your local machine:
 ```buildoutcfg
 $ git clone https://github.com/JohnMcCarroll/DeepLearningChessAI.git
 ```
-Set up a virtual environment:
+
+Navigate to the root directory of the repository. Then, set up a virtual environment:
 ```buildoutcfg
 $ python -m venv .
 ```

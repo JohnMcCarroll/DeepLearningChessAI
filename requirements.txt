@@ -4,3 +4,4 @@ joblib
 requests
 torchvision
 matplotlib
+-e .

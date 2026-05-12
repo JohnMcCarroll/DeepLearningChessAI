@@ -1,8 +1,8 @@
 import torch
 import torch.utils.data
-import CNN
+import src.playing.CNN as CNN
 import pickle
-import TrainingData as data
+import src.data.TrainingData as data
 
 """
     fun class to visualize board alongside a network's evaluation of the position - manual testing / sanity checking

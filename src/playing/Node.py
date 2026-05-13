@@ -2,12 +2,13 @@ import torch
 import pickle
 import copy
 import traceback
-import PredictionVisualization
+import src.playing.PredictionVisualization as PredictionVisualization
 import sys
 
 class Node:
     def __init__(self, boardState, parent=None):
-        self.boardState = boardState.cuda()     # the position of the pieces (GPU)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.boardState = boardState.to(device)     # the position of the pieces (GPU or CPU)
         self.color = ""                         # the color to move
 
         self.colorChannels = list()             # set of channels that house own color pieces

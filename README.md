@@ -13,46 +13,46 @@ since I started learning to code. This project stands as a fond milestone in my 
 
 Clone the repo to your local machine:
 ```buildoutcfg
-$ git clone https://github.com/JohnMcCarroll/DeepLearningChessAI.git
+git clone https://github.com/JohnMcCarroll/DeepLearningChessAI.git
 ```
 
 Navigate to the root directory of the repository. Then, set up a virtual environment:
 ```buildoutcfg
-$ python -m venv .
+python -m venv .
 ```
 
 Activate your new virtual environment. This command is platform dependent, but for Linux it reads:
 ```buildoutcfg
-$ source bin/activate 
+source bin/activate 
 ```
 
 Install dependencies:
 ```buildoutcfg
-$ pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### Data
 
 Retrieve Data from Chess.com (this may take a while):
 ```buildoutcfg
-$ python src/data/DataRetrieval.py
+python src/data/DataRetrieval.py
 ```
 
 Curate Data:
 ```buildoutcfg
-$ python src/data/HashtableTraining.py
+python src/data/HashtableTrainingData.py
 ```
 
 ### Training and Play
 
 Train a Neural Network:
 ```buildoutcfg
-$ python src/training/TrainingLoop.py
+python src/training/TrainingLoop.py
 ```
 
 Begin a game against an AI Opponent:
 ```buildoutcfg
-$ python src/playing/Player.py
+python src/playing/Player.py
 ```
 
 The AI will begin with the white pieces and make its first move. It selects its move from the results of

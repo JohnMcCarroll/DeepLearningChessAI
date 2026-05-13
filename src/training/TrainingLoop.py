@@ -25,8 +25,8 @@ def parseLine(line, dataset):
     # initialize hyperparameters & variables
 batchSize = 50
 learningRate = 0.0001
-epoch = 1
-subepoch = 10
+epoch_count = 1
+subepoch_count = 100
 test_set_size = 10000
 datasetFilepath = r'games.txt'
 dataset = list()
@@ -34,7 +34,8 @@ test_set = list()
 
     # loading in network and data
     # Creates new network
-network = CNN.CNN().cuda()
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+network = CNN.CNN().to(device)
 
     # partition a test set
 datasetSize = 0
@@ -46,7 +47,7 @@ with open(datasetFilepath, 'r') as file:
         datasetSize = i
 
     # establish length of subepochs
-subepochSize = int((datasetSize + 1) / subepoch)
+subepochSize = int((datasetSize + 1) / subepoch_count)
 
     # init optimizer
 optimizer = optim.Adam(network.parameters(), learningRate)
@@ -60,8 +61,8 @@ train_losses = list()
     # setting up test data
 test_loader = torch.utils.data.DataLoader(test_set, test_set_size)
 test_boards, test_results = next(iter(test_loader))
-test_results = test_results.float().reshape([-1, 1]).cuda()     #switch to gpu
-test_boards = test_boards.cuda()
+test_results = test_results.float().reshape([-1, 1]).to(device)     #switch to gpu
+test_boards = test_boards.to(device)
 test_losses = list()
 
     # setting up validation data
@@ -75,59 +76,72 @@ test_losses = list()
 
 #add loops for testing hyperparams / architectures
 
-for epoch in range(epoch):
+for current_epoch in range(epoch_count):
 
-    for subepoch in range(subepoch):
-        # set up partition of dataset as train_set
-        train_set = list()
-        with open(datasetFilepath, 'r') as file:
-            for i, line in enumerate(file):
-                # add board position to train_set
-                if test_set_size + subepochSize*subepoch <= i:
+    with open(datasetFilepath, 'r') as file:
+        # Skip the test set portion at the beginning of the file
+        for _ in range(test_set_size):
+            next(file, None)
+            
+        for current_subepoch in range(subepoch_count):
+            # set up partition of dataset as train_set
+            train_set = list()
+            for _ in range(subepochSize):
+                line = next(file, None)
+                if line is not None:
                     parseLine(line, train_set)
-
-                # break from loop once out of scope
-                if i >= subepochSize*(subepoch + 1) + test_set_size:
+                else:
                     break
 
-        # create data_loader from train_set
-        if train_set:
-            train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
+            # create data_loader from train_set
+            if train_set:
+                train_loader = torch.utils.data.DataLoader(train_set, batchSize, shuffle=True)
 
-        # train on subepoch
-        for batch in train_loader:
+            # train on subepoch
+            subepoch_loss_sum = 0.0
+            batch_count = 0
+            for batch in train_loader:
 
-            boards, results = batch
+                boards, results = batch
 
-            # converting type & reshaping
-            results = results.float().reshape([-1, 1]).cuda()       #switch to gpu
-            boards = boards.cuda()
+                # converting type & reshaping
+                results = results.float().reshape([-1, 1]).to(device)       #switch to gpu
+                boards = boards.to(device)
 
-            # calculating loss
-            preds = network(boards)
-            loss = F.mse_loss(preds, results)
+                # calculating loss
+                preds = network(boards)
+                loss = F.mse_loss(preds, results)
 
-            train_losses.append(loss.item())    # store train loss for batch
+                train_losses.append(loss.item())    # store train loss for batch
+                subepoch_loss_sum += loss.item()
+                batch_count += 1
 
-            # calculating gradients
-            optimizer.zero_grad()   #clear out accumulated gradients
-            loss.backward()
-            optimizer.step() # updating weights
+                # calculating gradients
+                optimizer.zero_grad()   #clear out accumulated gradients
+                loss.backward()
+                optimizer.step() # updating weights
 
-            # benchmark if learning
-            test_preds = network(test_boards)
-            test_loss = F.mse_loss(test_preds, test_results)
-            test_losses.append(test_loss.item())
+            # benchmark if learning at the end of the subepoch
+            with torch.no_grad():
+                test_preds = network(test_boards)
+                test_loss = F.mse_loss(test_preds, test_results)
+                test_losses.append(test_loss.item())
+            
+            # log progress to the console
+            avg_train_loss = subepoch_loss_sum / batch_count if batch_count > 0 else 0
+            print(f"Epoch [{current_epoch+1}/{epoch_count}] Subepoch [{current_subepoch+1}/{subepoch_count}] - Train Loss: {avg_train_loss:.4f} | Test Loss: {test_loss.item():.4f}")
 
 plt.plot(test_losses)
 plt.ylabel('test loss')
-plt.xlabel('batch number')
-plt.show()
+plt.xlabel('subepoch number')
+plt.savefig('test_loss.png')
+plt.clf()
 
 plt.plot(train_losses)
 plt.ylabel('train loss')
 plt.xlabel('prediction number')
-plt.show()
+plt.savefig('train_loss.png')
+plt.clf()
 
 # free up RAM
 data = []

@@ -869,9 +869,11 @@ class TrainingData (torch.utils.data.Dataset):
 
             print(self.cudaDataset)
 
-# import pickle
 
-db = TrainingData(r'D:\Machine Learning\DeepLearningChessAI\Chess Database\Chess.com GMs\GMs.pgn')
 
-# with open(r'D:\Machine Learning\DeepLearningChessAI\Data\ratioDataset.db', 'wb') as file:
-#     pickle.dump(db.dataset, file)
+if __name__ == '__main__':
+    db = TrainingData('games.pgn')
+
+    import pickle
+    with open(r'dataset.db', 'wb') as file:
+        pickle.dump(db.dataset, file)

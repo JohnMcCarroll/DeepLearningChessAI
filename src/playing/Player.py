@@ -1,9 +1,10 @@
 import torch
-import Node
-import CNN
+import src.playing.Node as Node
+import src.playing.CNN as CNN
 import copy
 import re
 import pickle
+import sys
 
 """
     The Player class is the controller. It is responsible for maintaining the tree representation of the game (& game lines) and uses an instance
@@ -14,7 +15,9 @@ class Player():
     def __init__(self, node, cnn, color="White", depth=1, breadth=1):
         self.tree = node
         self.cnn = cnn
-        self.cnn.cuda()
+        
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.cnn.to(device)
 
         self.color = color
         self.turn = "White"
@@ -58,7 +61,12 @@ class Player():
         isTurn = True
 
         while isTurn:
-            move = input()              # get user input
+            try:
+                move = input()              # get user input
+            except EOFError:
+                print("EOF reached. Exiting game.")
+                sys.exit(0)
+                
             if move == "done":
                 # change turn
                 if self.color == "White":
@@ -156,7 +164,7 @@ class Player():
                 # find and replace most promising line
                 best = max(lines)
                 index = lines.index(best)
-                lines[index] = -1                            # subtitute current max with lowest eval    
+                lines[index] = [-1.0]                            # subtitute current max with lowest eval    
 
                 # store highest value & index of most promising lines
                 proxy = self.minimax(node.getChildren()[index], depth-1, False, alpha, beta, nodeIndex=index)
@@ -185,7 +193,7 @@ class Player():
                 # find and remove most promising line
                 best = min(lines)
                 index = lines.index(best)
-                lines[index] = 2                            # subtitute current min with highest eval
+                lines[index] = [2.0]                            # subtitute current min with highest eval
 
                 # store lowest value & index of most promising lines
                 proxy = self.minimax(node.getChildren()[index], depth-1, True, alpha, beta, nodeIndex=index)
@@ -208,12 +216,19 @@ class Player():
 
     def getPredictions(self, node):             # assumes node already created children
         # get predictions on each child
-        predictions = list()
         children = node.getChildren()
-        for child in children:
-            predictions.append(self.cnn(torch.unsqueeze(child.getBoard(), 0)))
+        if not children:
+            return []
 
-        return predictions
+        # Stack boards into a single batch tensor: [batch_size, channels, rows, cols]
+        batched_boards = torch.stack([child.getBoard() for child in children])
+        
+        # Perform batched inference
+        with torch.no_grad(): # Disable gradient tracking for inference
+            batched_predictions = self.cnn(batched_boards)
+
+        # Convert back to a list of individual prediction values
+        return batched_predictions.tolist()
 
     def isMate(self, node):                     # assumes node already created children
         isMate = False
@@ -297,8 +312,9 @@ board = initialBoard()
 game = Node.Node(board)
 
 network = 0
-network = torch.load(r'BetaZero.cnn')
-network = network.cuda()
+network = torch.load(r'BetaZero.cnn', weights_only=False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+network = network.to(device)
 
 player = Player(game, network, "White", 4, 4)
 player.play()

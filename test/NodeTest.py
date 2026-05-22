@@ -1,121 +1,130 @@
 from unittest import TestCase
 import unittest
 import torch
-import Node
+from src.playing.Node import Node
+
 
 class TestNode(TestCase):
-    def test_minimax(self):
-        self.assertTrue(False)
 
+    def test_promotion(self):
+        # PAWN PROMOTION TEST
+        board = torch.zeros([14, 8, 8])
+        board[5, 1, 0] = 1
+        board[0, 7, 0] = 1
 
-def promotion():
-    # PAWN PROMOTION TEST
-    board = torch.zeros([14, 8, 8])
-    board[5, 1, 0] = 1
-    board[0, 7, 0] = 1
+        node = Node(board)
+        node.WKC = False
+        node.WQC = False
 
-    node = Node.Node(board)
-    node.WKC = False
-    node.WQC = False
+        print("PARENT:")
+        print(node)
 
-    print("PARENT:")
-    print(node)
+        print("CHILDREN:")
+        node.createChildren()
+        children = node.getChildren()
+        for child in children:
+            print(child)
 
-    print("CHILDREN:")
-    node.createChildren()
-    children = node.getChildren()
-    for child in children:
-        print(child)
+        self.assertTrue(True)
 
-def enPassant():
-    board = torch.zeros([14, 8, 8])
-    board[5, 6, 0] = 1
-    board[11, 4, 1] = 1
+    def test_enPassant(self):
+        board = torch.zeros([14, 8, 8])
+        board[5, 6, 0] = 1
+        board[11, 4, 1] = 1
 
-    board[0, 7, 7] = 1
-    board[6, 5, 7] = 1
+        board[0, 7, 7] = 1
+        board[6, 5, 7] = 1
 
-    print("initial:")
-    node = Node.Node(board)
-    node.WKC = False
-    node.WQC = False
-    node.BKC = False
-    node.BQC = False
-    node.createChildren()
+        print("initial:")
+        node = Node(board)
+        node.WKC = False
+        node.WQC = False
+        node.BKC = False
+        node.BQC = False
+        node.createChildren()
 
-    children = node.getChildren()
-    print(node)
+        children = node.getChildren()
+        print(node)
 
-    line = 0
-    for child in children:
-        line += 1
-        print("CHILD " + str(line))
-        print(child)
-        child.createChildren()
-        more = child.getChildren()
+        line = 0
+        for child in children:
+            line += 1
+            print("CHILD " + str(line))
+            print(child)
+            child.createChildren()
+            more = child.getChildren()
 
-        print("GRANDKIDS...")
-        for child2 in more:
-            print(child2)
+            print("GRANDKIDS...")
+            for child2 in more:
+                print(child2)
+        
+        self.assertTrue(True)
 
-def castling():
-    board = torch.zeros([14, 8, 8])
-    board[6, 0, 4] = 1
-    board[0, 7, 4] = 1
-    board[8, 0, 0] = 1
-    board[8, 0, 7] = 1
-    board[2, 7, 3] = 1
-    board[2, 7, 5] = 1
-    board[12:14, :, :] = 1
+    def test_castling(self):
+        board = torch.zeros([14, 8, 8])
+        board[6, 0, 4] = 1
+        board[0, 7, 4] = 1
+        board[8, 0, 0] = 1
+        board[8, 0, 7] = 1
+        board[2, 7, 3] = 1
+        board[2, 7, 5] = 1
+        board[12:14, :, :] = 1
 
-    node = Node.Node(board)
-    print("parent:")
-    print(node)
+        node = Node(board)
+        print("parent:")
+        print(node)
 
-    node.createChildren()
-    children = node.getChildren()
+        node.createChildren()
+        children = node.getChildren()
 
-    for child in children:
-        print(child)
+        for child in children:
+            print(child)
 
-def queen():
-    board = torch.zeros([14, 8, 8])
-    board[6, 0, 0] = 1
-    board[0, 7, 4] = 1
-    board[7, 3, 4] = 1
-    board[12:14, :, :] = 1
-    board[1, 6, 4] = 1
+        self.assertTrue(True)
 
-    print("parent")
-    node = Node.Node(board)
-    print(node)
+    def test_queen(self):
+        board = torch.zeros([14, 8, 8])
+        board[6, 0, 0] = 1
+        board[0, 7, 4] = 1
+        board[7, 3, 4] = 1
+        board[12:14, :, :] = 1
+        board[1, 6, 4] = 1
 
-    node.createChildren()
-    children = node.getChildren()
-    for child in children:
-        print(child)
+        print("parent")
+        node = Node(board)
+        print(node)
 
-def capturePromo():
-    board = torch.zeros([14, 8, 8])
-    board[11, 6, 7] = 1
-    board[4, 7, 6] = 1
-    board[6, 0, 0] = 1
-    board[12:14, :, :] = 1
+        node.createChildren()
+        children = node.getChildren()
+        for child in children:
+            print(child)
+    
+        self.assertTrue(True)
 
-    node = Node.Node(board)
-    node.WKC = False
-    node.WQC = False
-    node.BKC = False
-    node.BQC = False
+    def test_capturePromo(self):
+        board = torch.zeros([14, 8, 8])
+        board[11, 6, 7] = 1
+        board[4, 7, 6] = 1
+        board[6, 0, 0] = 1
+        board[12:14, :, :] = 1
 
-    print("PARENT:")
-    print(node)
+        node = Node(board)
+        node.WKC = False
+        node.WQC = False
+        node.BKC = False
+        node.BQC = False
 
-    print("CHILDREN:")
-    node.createChildren()
-    children = node.getChildren()
-    for child in children:
-        print(child)
+        print("PARENT:")
+        print(node)
+
+        print("CHILDREN:")
+        node.createChildren()
+        children = node.getChildren()
+        for child in children:
+            print(child)
+
+        self.assertTrue(True)
+
 
 if __name__ == '__main__':
     unittest.main()

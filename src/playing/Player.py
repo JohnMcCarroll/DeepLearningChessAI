@@ -306,52 +306,54 @@ def initialBoard():
 
     return board
 
-# Play Script
 
-board = initialBoard()
-game = Node.Node(board)
+if __name__ == '__main__':
+    # Play Script
 
-network = 0
-network = torch.load(r'BetaZero.cnn', weights_only=False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-network = network.to(device)
+    board = initialBoard()
+    game = Node.Node(board)
 
-player = Player(game, network, "White", 4, 4)
-player.play()
+    network = 0
+    network = torch.load(r'BetaZero.cnn', weights_only=False, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    network = network.to(device)
 
-#############################################################################################################################################################
+    player = Player(game, network, "White", 4, 4)
+    player.play()
 
-# # Debug Script
-# import DataAlteration
-# import PredictionVisualization
+    #############################################################################################################################################################
 
-#     # create boardstate that casused error
-# str_board = "BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,E,BP,BP,BP,E,E,E,E,E,E,E,E,E,E,E,E,BP,E,E,E,E,E,E,E,E,E,WP,E,E,E,E,E,E,E,E,E,WP,WP,WP,WP,WP,WP,E,WP,WR,WN,WB,WQ,WK,WB,WN,WR,W"
-# board = DataAlteration.stringToBoard(str_board)
+    # # Debug Script
+    # import DataAlteration
+    # import PredictionVisualization
 
-#     # create starting boardstate
-# board = initialBoard()
-# board[0:12, 0, 3] = 0
-# board[0:12, 1, 4] = 0
-# ## board[0:12, 6, 2] = 0
-# board[0:12, 6, 3] = 0
-# board[0:12, 7, 6] = 0
-# board[7, 2, 5] = 1
-# board[11, 3, 4] = 1
-# ## board[5, 4, 2] = 1
-# board[5, 5, 3] = 1
+    #     # create boardstate that casused error
+    # str_board = "BR,BN,BB,BQ,BK,BB,BN,BR,BP,BP,BP,BP,E,BP,BP,BP,E,E,E,E,E,E,E,E,E,E,E,E,BP,E,E,E,E,E,E,E,E,E,WP,E,E,E,E,E,E,E,E,E,WP,WP,WP,WP,WP,WP,E,WP,WR,WN,WB,WQ,WK,WB,WN,WR,W"
+    # board = DataAlteration.stringToBoard(str_board)
 
-# game = Node.Node(board)
+    #     # create starting boardstate
+    # board = initialBoard()
+    # board[0:12, 0, 3] = 0
+    # board[0:12, 1, 4] = 0
+    # ## board[0:12, 6, 2] = 0
+    # board[0:12, 6, 3] = 0
+    # board[0:12, 7, 6] = 0
+    # board[7, 2, 5] = 1
+    # board[11, 3, 4] = 1
+    # ## board[5, 4, 2] = 1
+    # board[5, 5, 3] = 1
 
-# print(game)
+    # game = Node.Node(board)
 
-# network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
-# network = network.cuda()                                                               # GPU compatible
+    # print(game)
 
-# player = Player(game, network, "White", 3, 3)
-# player.play()
+    # network = torch.load(r'D:\ChessEngine\DeepLearningChessAI\Networks\Skipper5a.cnn')
+    # network = network.cuda()                                                               # GPU compatible
+
+    # player = Player(game, network, "White", 3, 3)
+    # player.play()
 
 
-### IMPROVEMENTS
-# generalize colors so can play as White & black
-# simplify depth / breadth params to "difficulty" setting
+    ### IMPROVEMENTS
+    # generalize colors so can play as White & black
+    # simplify depth / breadth params to "difficulty" setting

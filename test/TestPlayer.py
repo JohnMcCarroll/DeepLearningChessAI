@@ -2,8 +2,8 @@ from unittest import TestCase
 from unittest.mock import MagicMock
 import unittest
 import torch
-from Node import Node
-from Player import Player
+from src.playing.Node import Node
+from src.playing.Player import Player
 import random
 
 
@@ -63,7 +63,6 @@ class TestPlayer(TestCase):
         self.assertEqual(5, move[0], "expected index 5")
         self.assertEqual(0.4, move[1], "expected value of 0.4")
         "if StopIteration error, alpha beta prune failed"
-
 
 
 if __name__ == '__main__':

@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 import copy
 import random
-from multiprocessing import Pool, cpu_count
+import torch.multiprocessing as mp
+from multiprocessing import cpu_count
 import src.playing.CNN as CNN
 import src.playing.Player as Player
 import src.playing.Node as Node
@@ -35,7 +36,7 @@ def initialBoard():
     return board
 
 
-def play_game(model_state_dict, opponent_state_dict):
+def play_game(model_state_dict, opponent_state_dict, depth, breadth):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model_cnn = CNN.CNN()
@@ -61,8 +62,8 @@ def play_game(model_state_dict, opponent_state_dict):
     board = initialBoard()
     node = Node.Node(board)
     
-    white_player = Player.Player(node, white_cnn, "White", depth=4, breadth=4)
-    black_player = Player.Player(node, black_cnn, "Black", depth=4, breadth=4)
+    white_player = Player.Player(node, white_cnn, "White", depth=depth, breadth=breadth)
+    black_player = Player.Player(node, black_cnn, "Black", depth=depth, breadth=breadth)
     
     game_states = []
     current_player = white_player
@@ -101,17 +102,20 @@ def play_game(model_state_dict, opponent_state_dict):
         
         current_player, other_player = other_player, current_player
         move_count += 1
+
     else:
         result = 0.5
+
+    print(move_count)
     
     return game_states, result
 
 
-def generate_self_play_data(model_state_dict, opponent_state_dict, num_games=100):
+def generate_self_play_data(model_state_dict, opponent_state_dict, num_games=100, depth=3, breadth=3):
     num_processes = min(cpu_count(), num_games)
     
-    with Pool(processes=num_processes) as pool:
-        results = pool.starmap(play_game, [(model_state_dict, opponent_state_dict)] * num_games)
+    with mp.Pool(processes=num_processes) as pool:
+        results = pool.starmap(play_game, [(model_state_dict, opponent_state_dict, depth, breadth)] * num_games)
     
     return results
 
@@ -167,21 +171,36 @@ def train_model(model, data_dict, num_epochs, learning_rate=0.0001):
 def self_play_training_loop(num_iterations=10, games_per_iteration=100, output_dir=Path.cwd()):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
-    opponent = torch.load('BetaZero.cnn', weights_only=False, map_location=device)
+    # opponent = torch.load('BetaZero.cnn', weights_only=False, map_location=device)
+    opponent = CNN.CNN()
     opponent.eval()
     
     model = CNN.CNN()   # new model to train
     
     data_dict = {}
+    minimax_search_curriculum = [
+        (1,1),
+        (2,1),
+        (2,2),
+        (3,2),
+        (3,3),
+        (4,3),
+    ]
     
     for iteration in range(num_iterations):
         print(f"\n=== Self-Play Training Iteration {iteration + 1}/{num_iterations} ===")
         
         print(f"Generating data from {games_per_iteration} games...")
-        model_state_dict = model.state_dict()
-        opponent_state_dict = opponent.state_dict()
+        model_state_dict = {k: v.cpu() for k, v in model.state_dict().items()}
+        opponent_state_dict = {k: v.cpu() for k, v in opponent.state_dict().items()}
+
+        # Search depth + breadth increase with time
+        curriculum_percent = iteration / num_iterations
+        curriculum_index = int(6*curriculum_percent)
+        depth, breadth = minimax_search_curriculum[curriculum_index]
+        print(f"Minimax depth = {depth}, breadth = {breadth}")
         
-        game_results = generate_self_play_data(model_state_dict, opponent_state_dict, games_per_iteration)
+        game_results = generate_self_play_data(model_state_dict, opponent_state_dict, num_games=games_per_iteration, depth=depth, breadth=breadth)
         
         print(f"Updating training data dictionary...")
         data_dict = update_training_data(data_dict, game_results)
@@ -191,7 +210,7 @@ def self_play_training_loop(num_iterations=10, games_per_iteration=100, output_d
         opponent = copy.deepcopy(model)
         opponent.eval()
         
-        num_epochs = min(iteration + 1, 10)
+        num_epochs = round(min(iteration / 5 + 1, 10))
         print(f"Training model for {num_epochs} epochs...")
         train_model(model, data_dict, num_epochs)
         
@@ -209,5 +228,8 @@ if __name__ == '__main__':
     repo_root_path = Path(__file__).parent.parent.parent
     output_dir_path = repo_root_path / Path(f"self_play_models/{date_str}")
     output_dir_path.mkdir(parents=True, exist_ok=True)
+    # Force spawn (Pytorch multiprocessing)
+    mp.set_start_method('spawn', force=True)
     # Launch training
-    self_play_training_loop(num_iterations=100, games_per_iteration=10, output_dir=output_dir_path)
+    self_play_training_loop(num_iterations=1000, games_per_iteration=1, output_dir=output_dir_path)
+    # TODO: implement bench of opponents, or move rng, otherwise all game will be the same (limited to 1 game per training iter)
